@@ -544,16 +544,16 @@ def admin_add_gesture():
         luganda_meaning = data.get('luganda_meaning')
         description = data.get('description', '')
         
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            '''INSERT INTO gestures (gesture_name, english_meaning, luganda_meaning, description, created_at)
-               VALUES (?, ?, ?, ?, ?)''',
-            (gesture_name, english_meaning, luganda_meaning, description, get_nairobi_time())
-        )
-        db.commit()
+        gestures = get_gestures_collection()
+        result = gestures.insert_one({
+            'gesture_name': gesture_name,
+            'english_meaning': english_meaning,
+            'luganda_meaning': luganda_meaning,
+            'description': description,
+            'created_at': get_nairobi_time()
+        })
         
-        return jsonify({'success': True, 'gesture_id': cursor.lastrowid}), 201
+        return jsonify({'success': True, 'gesture_id': str(result.inserted_id)}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -568,17 +568,23 @@ def admin_update_gesture(gesture_id):
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
         
-        db = get_db()
-        cursor = db.cursor()
+        from bson import ObjectId
+        gestures = get_gestures_collection()
         
-        cursor.execute(
-            '''UPDATE gestures 
-               SET gesture_name = ?, english_meaning = ?, luganda_meaning = ?, description = ?
-               WHERE id = ?''',
-            (data.get('gesture_name'), data.get('english_meaning'), 
-             data.get('luganda_meaning'), data.get('description', ''), gesture_id)
+        try:
+            object_id = ObjectId(gesture_id)
+        except:
+            object_id = gesture_id
+        
+        gestures.update_one(
+            {'_id': object_id},
+            {'$set': {
+                'gesture_name': data.get('gesture_name'),
+                'english_meaning': data.get('english_meaning'),
+                'luganda_meaning': data.get('luganda_meaning'),
+                'description': data.get('description', '')
+            }}
         )
-        db.commit()
         
         return jsonify({'success': True}), 200
     except Exception as e:
@@ -594,10 +600,15 @@ def admin_delete_gesture(gesture_id):
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
         
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('DELETE FROM gestures WHERE id = ?', (gesture_id,))
-        db.commit()
+        from bson import ObjectId
+        gestures = get_gestures_collection()
+        
+        try:
+            object_id = ObjectId(gesture_id)
+        except:
+            object_id = gesture_id
+        
+        gestures.delete_one({'_id': object_id})
         
         return jsonify({'success': True}), 200
     except Exception as e:
@@ -639,28 +650,21 @@ def admin_get_users():
         token = request.headers.get('Authorization')
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            '''SELECT id, username, email, created_at, last_login_at, last_logout_at, is_online
-               FROM users
-               ORDER BY created_at DESC'''
-        )
-        users = cursor.fetchall()
-
+        
+        users = get_users_collection()
+        
         return jsonify({
             'users': [
                 {
-                    'id': user[0],
-                    'username': user[1],
-                    'email': user[2],
-                    'created_at': user[3],
-                    'last_login_at': user[4],
-                    'last_logout_at': user[5],
-                    'is_online': bool(user[6]),
-                    'has_logged_in': user[4] is not None
-                } for user in users
+                    'id': str(user.get('_id')),
+                    'username': user.get('username'),
+                    'email': user.get('email'),
+                    'created_at': user.get('created_at'),
+                    'last_login_at': user.get('last_login_at'),
+                    'last_logout_at': user.get('last_logout_at'),
+                    'is_online': bool(user.get('is_online', 0)),
+                    'has_logged_in': user.get('last_login_at') is not None
+                } for user in users.find({}).sort('created_at', -1)
             ]
         }), 200
     except Exception as e:
@@ -833,18 +837,23 @@ def user_logout():
     try:
         token = request.headers.get('Authorization')
         user_id = get_user_id_from_token(token)
-
+        
         if not user_id:
             return jsonify({'error': 'Unauthorized'}), 401
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            'UPDATE users SET is_online = 0, last_logout_at = ? WHERE id = ?',
-            (get_nairobi_time(), user_id)
+        
+        from bson import ObjectId
+        users = get_users_collection()
+        
+        try:
+            object_id = ObjectId(user_id)
+        except:
+            object_id = user_id
+        
+        users.update_one(
+            {'_id': object_id},
+            {'$set': {'is_online': 0, 'last_logout_at': get_nairobi_time()}}
         )
-        db.commit()
-
+        
         return jsonify({'success': True, 'message': 'Logged out'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1055,17 +1064,22 @@ def delete_user_account(user_id):
             return jsonify({'error': 'Unauthorized'}), 401
         
         # Verify user is deleting their own account
-        token_user_id = int(token.split('_')[1])
-        if token_user_id != user_id:
+        token_user_id = token.split('_')[1]
+        if token_user_id != str(user_id):
             return jsonify({'error': 'Cannot delete other user accounts'}), 403
         
-        db = get_db()
-        cursor = db.cursor()
+        from bson import ObjectId
+        users = get_users_collection()
+        translations = get_translations_collection()
+        
+        try:
+            object_id = ObjectId(user_id)
+        except:
+            object_id = user_id
         
         # Delete user and associated translations
-        cursor.execute('DELETE FROM translations WHERE user_id = ?', (user_id,))
-        cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
-        db.commit()
+        translations.delete_many({'user_id': str(object_id)})
+        users.delete_one({'_id': object_id})
         
         return jsonify({'success': True, 'message': 'Account deleted'}), 200
     except Exception as e:
@@ -1078,18 +1092,14 @@ def delete_user_account(user_id):
 def get_letter_gestures():
     """Get all available letter gestures (A-Z)"""
     try:
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT id, letter, gesture_name, description FROM letter_gestures ORDER BY letter')
-        letters = cursor.fetchall()
-        
+        letters = get_letters_collection()
         letter_list = [
             {
-                'id': l[0],
-                'letter': l[1],
-                'gesture_name': l[2],
-                'description': l[3]
-            } for l in letters
+                'id': str(l.get('_id')),
+                'letter': l.get('letter'),
+                'gesture_name': l.get('gesture_name'),
+                'description': l.get('description')
+            } for l in letters.find({}).sort('letter', 1)
         ]
         
         return jsonify({'letters': letter_list}), 200
@@ -1273,18 +1283,17 @@ def admin_train_model():
                 print(f"Error saving frame {idx}: {e}")
         
         # Add gesture to database if not exists
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT id FROM gestures WHERE gesture_name = ?', (gesture_label,))
-        existing = cursor.fetchone()
+        gestures = get_gestures_collection()
+        existing = gestures.find_one({'gesture_name': gesture_label})
         
         if not existing:
-            cursor.execute(
-                '''INSERT INTO gestures (gesture_name, english_meaning, luganda_meaning, description, created_at)
-                   VALUES (?, ?, ?, ?, ?)''',
-                (gesture_label, gesture_name, gesture_name, f'Trained via admin portal', get_nairobi_time())
-            )
-            db.commit()
+            gestures.insert_one({
+                'gesture_name': gesture_label,
+                'english_meaning': gesture_name,
+                'luganda_meaning': gesture_name,
+                'description': f'Trained via admin portal',
+                'created_at': get_nairobi_time()
+            })
         
         return jsonify({
             'success': True,
@@ -1299,9 +1308,7 @@ def admin_train_model():
 @app.teardown_appcontext
 def close_db(error):
     """Close database connection"""
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+    close_mongo_or_sqlite(error)
 
 
 if __name__ == '__main__':
