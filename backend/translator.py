@@ -1,6 +1,9 @@
 """Translation helpers backed by the gestures table."""
 
-from database import get_db
+try:
+    from .database import get_db
+except ImportError:
+    from database import get_db
 
 
 class Translator:
