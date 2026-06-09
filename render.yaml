@@ -3,4 +3,4 @@ services:
     name: sign-language-translator
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT wsgi:application
+    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT app:app
