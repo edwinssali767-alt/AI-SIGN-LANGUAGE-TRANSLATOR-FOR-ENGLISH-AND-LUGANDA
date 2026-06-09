@@ -28,13 +28,9 @@ let isRealtimeMode = false;
 let realtimeFrameInterval = null;
 let realtimeBtn = null;
 let targetLanguage = null;
+let usingFrontCamera = true;
 
-const feedbackElements = {
-    currentSign: document.getElementById('currentSign'),
-    confidenceLevel: document.getElementById('confidenceLevel'),
-    translationSpeed: document.getElementById('translationSpeed'),
-    clearFeedbackBtn: document.getElementById('clearFeedbackBtn')
-};
+const feedbackElements = {};
 
 document.addEventListener('DOMContentLoaded', function () {
     const startCameraBtn = document.getElementById('startCameraBtn');
@@ -99,6 +95,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (realtimeBtn) {
         realtimeBtn.addEventListener('click', toggleRealtimeMode);
     }
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
+    if (switchCameraBtn) {
+        switchCameraBtn.addEventListener('click', switchCamera);
+    }
     newTranslationBtn.style.display = 'none';
     if (closeErrorBtn) {
         closeErrorBtn.addEventListener('click', hideError);
@@ -106,14 +106,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (learningVideoUpload) {
         learningVideoUpload.addEventListener('change', handleLearningVideoUpload);
     }
-    if (feedbackElements.clearFeedbackBtn) {
-        feedbackElements.clearFeedbackBtn.addEventListener('click', clearFeedback);
-    }
 
     async function startCamera() {
         try {
+            const facingMode = usingFrontCamera ? 'user' : 'environment';
             mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' },
+                video: { facingMode: facingMode },
                 audio: false,
             });
 
@@ -124,13 +122,34 @@ document.addEventListener('DOMContentLoaded', function () {
             captureBtn.disabled = false;
             stopCameraBtn.disabled = false;
             realtimeBtn.disabled = false;
+            if (switchCameraBtn) switchCameraBtn.disabled = false;
             showSuccess('Camera started');
         } catch (error) {
             showError(`Camera error: ${error.message}`);
         }
     }
 
+    async function switchCamera() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+        }
+        usingFrontCamera = !usingFrontCamera;
+        try {
+            const facingMode = usingFrontCamera ? 'user' : 'environment';
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: facingMode },
+                audio: false,
+            });
+            cameraFeed.srcObject = mediaStream;
+            await cameraFeed.play();
+            showSuccess(`Switched to ${usingFrontCamera ? 'front' : 'back'} camera`);
+        } catch (error) {
+            showError(`Failed to switch camera: ${error.message}`);
+        }
+    }
+
     function stopCamera() {
+        const switchCameraBtn = document.getElementById('switchCameraBtn');
         if (captureInterval) {
             clearInterval(captureInterval);
             captureInterval = null;
@@ -151,6 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
         captureBtn.disabled = true;
         stopCameraBtn.disabled = true;
         realtimeBtn.disabled = true;
+        if (switchCameraBtn) switchCameraBtn.disabled = true;
         captureBtn.textContent = 'Capture Gesture';
         captureBtn.style.background = '';
         showSuccess('Camera stopped');
@@ -281,9 +301,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function handleRealtimeResult(data) {
-        if (data.gesture) {
-            detectedGesture.textContent = formatGestureName(data.gesture) || '-';
-            translationResult.textContent = data.translation || '-';
+        const liveEnglishEl = document.getElementById('liveEnglishTranslation');
+        const liveLugandaEl = document.getElementById('liveLugandaTranslation');
+
+        if (data.gesture && (liveEnglishEl || liveLugandaEl)) {
+            if (liveEnglishEl) {
+                liveEnglishEl.textContent = data.english || formatGestureName(data.gesture) || '-';
+            }
+            if (liveLugandaEl) {
+                liveLugandaEl.textContent = data.luganda || formatGestureName(data.gesture) || '-';
+            }
+
+            if (detectedGesture) {
+                detectedGesture.textContent = formatGestureName(data.gesture) || '-';
+            }
+            if (translationResult) {
+                translationResult.textContent = data.english || '-';
+            }
 
             updateFeedbackDisplay({
                 gesture: data.gesture,

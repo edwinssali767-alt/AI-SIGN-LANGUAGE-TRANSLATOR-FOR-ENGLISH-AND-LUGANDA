@@ -366,45 +366,42 @@ def handle_realtime_frame(data):
     token = data.get('token')
     user_id = get_user_id_from_token(token)
     frame_data = data.get('frame')
-    target_language = data.get('target_language', 'english')
-    
+
     if not user_id:
         emit('realtime_error', {'error': 'Authentication required'})
         return
-    
+
     subscription, error_response = ensure_user_can_translate(user_id)
     if error_response:
         emit('realtime_limit', error_response[0].get_json())
         return
-    
+
     if not frame_data:
         emit('realtime_error', {'error': 'No frame data'})
         return
-    
+
     import time
     start_time = time.time()
-    
+
     detected_gesture = gesture_processor.process_gesture(frame_data)
     confidence = 0.85
-    
+
+    english_translation = None
+    luganda_translation = None
+
     if detected_gesture:
-        translation = translator.translate(detected_gesture, target_language)
-        elapsed_ms = (time.time() - start_time) * 1000
-        
-        emit('realtime_result', {
-            'gesture': detected_gesture,
-            'translation': translation,
-            'confidence': confidence,
-            'speed': round(elapsed_ms, 2),
-            'language': target_language
-        })
-    else:
-        emit('realtime_result', {
-            'gesture': None,
-            'translation': None,
-            'confidence': 0,
-            'speed': (time.time() - start_time) * 1000
-        })
+        english_translation = translator.translate(detected_gesture, 'english')
+        luganda_translation = translator.translate(detected_gesture, 'luganda')
+
+    elapsed_ms = (time.time() - start_time) * 1000
+
+    emit('realtime_result', {
+        'gesture': detected_gesture,
+        'english': english_translation,
+        'luganda': luganda_translation,
+        'confidence': confidence,
+        'speed': round(elapsed_ms, 2)
+    })
 
 
 @socketio.on('stop_realtime')

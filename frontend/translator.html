@@ -80,47 +80,41 @@
                     </select>
                 </div>
 
-                <!-- Camera/Upload Section -->
+<!-- Camera/Upload Section -->
                 <div class="gesture-input">
-                    <div class="camera-section">
-                        <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
-                        <canvas id="photoCanvas" style="display:none;"></canvas>
+                    <div class="camera-container">
+                        <div class="camera-section">
+                            <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
+                            <canvas id="photoCanvas" style="display:none;"></canvas>
+                            <button type="button" id="switchCameraBtn" class="btn btn-secondary switch-camera-btn" disabled>Switch Camera</button>
+                        </div>
+
+                        <div class="realtime-translation-panel">
+                            <h4>Live Translation</h4>
+                            <div class="translation-display">
+                                <div class="translation-item">
+                                    <span class="translation-label">English:</span>
+                                    <span id="liveEnglishTranslation" class="translation-value">-</span>
+                                </div>
+                                <div class="translation-item">
+                                    <span class="translation-label">Luganda:</span>
+                                    <span id="liveLugandaTranslation" class="translation-value">-</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-<div class="controls">
-                         <button type="button" id="startCameraBtn" class="btn btn-primary">Start Camera</button>
-                         <button type="button" id="realtimeBtn" class="btn btn-secondary" disabled>Real-time Translation</button>
-                         <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture
-                             Gesture</button>
-                         <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
-                     </div>
+                    <div class="controls">
+                        <button type="button" id="startCameraBtn" class="btn btn-primary">Start Camera</button>
+                        <button type="button" id="realtimeBtn" class="btn btn-secondary" disabled>Real-time Translation</button>
+                        <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture
+                            Gesture</button>
+                        <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
+                    </div>
 
                     <div class="upload-section">
                         <p>Or upload an image:</p>
                         <input type="file" id="gestureUpload" accept="image/*" class="file-input">
-                    </div>
-
-                    <!-- Translated Feedback Section -->
-                    <div class="translation-feedback" id="translationFeedback">
-                        <h4 class="feedback-title">Live Translation Feedback</h4>
-                        <div class="feedback-content">
-                            <div class="feedback-item">
-                                <span class="feedback-label">Current Sign:</span>
-                                <span id="currentSign" class="feedback-value">-</span>
-                            </div>
-                            <div class="feedback-item">
-                                <span class="feedback-label">Confidence:</span>
-                                <span id="confidenceLevel" class="feedback-value">-</span>
-                            </div>
-                            <div class="feedback-item">
-                                <span class="feedback-label">Speed:</span>
-                                <span id="translationSpeed" class="feedback-value">-</span>
-                            </div>
-                        </div>
-                        <div class="feedback-actions">
-                            <button type="button" id="clearFeedbackBtn" class="btn btn-secondary hidden">Clear
-                                Feedback</button>
-                        </div>
                     </div>
                 </div>
 
