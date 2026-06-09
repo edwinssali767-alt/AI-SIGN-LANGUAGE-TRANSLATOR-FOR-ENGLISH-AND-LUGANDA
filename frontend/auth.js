@@ -2,7 +2,13 @@
  * Authentication JavaScript Handler
  */
 
-const API_BASE = getApiBase();
+const API_BASE = (() => {
+    const localHosts = ['localhost', '127.0.0.1'];
+    if (localHosts.includes(window.location.hostname)) {
+        return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    }
+    return `${window.location.origin}/api`;
+})();
 const ALLOWED_THEMES = ['light', 'dark', 'system'];
 
 function getApiBase() {
@@ -15,10 +21,13 @@ function getApiBase() {
 
 async function checkServerStatus() {
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
         const response = await fetch(`${API_BASE}/health`, {
             method: 'GET',
-            signal: AbortSignal.timeout(3000)
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
         return response.ok;
     } catch (error) {
         return false;
@@ -194,10 +203,10 @@ if (signupForm) {
         submitBtn.disabled = true;
         submitBtn.classList.add('loading');
 
-try {
+        try {
             const serverOk = await checkServerStatus();
             if (!serverOk) {
-                throw new Error('Backend server is not running. Please start the Flask server on port 5000.');
+                throw new Error('Server unreachable');
             }
 
             const response = await fetch(`${API_BASE}/user/signup`, {
@@ -208,13 +217,13 @@ try {
                 body: JSON.stringify({ username, email, password })
             });
 
-            const data = await response.json();
+            const contentType = response.headers.get('content-type') || '';
+            const data = contentType.includes('application/json') ? await response.json() : {};
 
             if (response.ok) {
                 successDiv.textContent = 'Account created! Signing you in...';
                 successDiv.classList.add('show');
 
-                // Store user info
                 localStorage.setItem('user_id', data.user_id);
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('email', email);
@@ -223,7 +232,6 @@ try {
 
                 initializeUserSubscription(data.subscription);
 
-                // Redirect after 2 seconds
                 setTimeout(() => {
                     window.location.href = 'profile.html';
                 }, 2000);
@@ -240,13 +248,13 @@ try {
                 errorDiv.classList.add('show');
             }
         } catch (error) {
-            let networkMsg = 'Network error. Please check your connection.';
-            if (error.message.includes('Failed to fetch') || !navigator.onLine) {
-                networkMsg = 'Cannot connect to server. Please ensure the backend is running.';
-            }
-            errorDiv.textContent = networkMsg;
-            errorDiv.classList.add('show');
             console.error('Signup error:', error);
+            if (error.message === 'Server unreachable' || error.message.includes('Failed to fetch') || !navigator.onLine) {
+                errorDiv.textContent = 'Cannot connect to server. Please ensure the backend is running.';
+            } else {
+                errorDiv.textContent = 'Signup failed. Please try again.';
+            }
+            errorDiv.classList.add('show');
         } finally {
             submitBtn.disabled = false;
             submitBtn.classList.remove('loading');
