@@ -188,8 +188,12 @@
         }
 
         // Load user subscription status
-        function loadSubscriptionStatus() {
+        async function loadSubscriptionStatus() {
             const user = JSON.parse(localStorage.getItem('currentUser'));
+            if (user && typeof syncSubscriptionFromServer === 'function') {
+                await syncSubscriptionFromServer();
+            }
+
             const subscription = JSON.parse(localStorage.getItem('userSubscription')) || {
                 tier: 'basic',
                 translationsUsed: 0,
@@ -217,6 +221,18 @@
 
                     document.getElementById('premiumBtn').className =
                         'btn btn-secondary plan-button';
+                } else {
+                    document.getElementById('basicBtn').textContent =
+                        'Current Plan';
+
+                    document.getElementById('basicBtn').className =
+                        'btn btn-secondary plan-button';
+
+                    document.getElementById('premiumBtn').textContent =
+                        'Upgrade Now';
+
+                    document.getElementById('premiumBtn').className =
+                        'btn plan-button';
                 }
             } else {
                 document.getElementById('subscriptionStatus').style.display = 'none';
@@ -224,7 +240,7 @@
         }
 
         // Handle plan selection
-        function selectPlan(plan) {
+        async function selectPlan(plan) {
             const user = JSON.parse(localStorage.getItem('currentUser'));
 
             if (!user) {
@@ -237,32 +253,29 @@
                 tier: 'basic'
             };
 
-            if (plan === 'basic') {
-                if (currentSubscription.tier === 'premium') {
-                    if (confirm('Are you sure you want to downgrade to the Basic plan?')) {
-                        currentSubscription.tier = 'basic';
-                        currentSubscription.translationsUsed = 0;
-                        currentSubscription.translationLimit = 10;
-                        localStorage.setItem('userSubscription', JSON.stringify(currentSubscription));
-                        loadSubscriptionStatus();
-                        alert('You have been downgraded to the Basic plan.');
+            try {
+                if (plan === 'basic') {
+                    if (currentSubscription.tier === 'premium') {
+                        if (confirm('Are you sure you want to downgrade to the Basic plan?')) {
+                            await updateSubscriptionTier('basic');
+                            await loadSubscriptionStatus();
+                            alert('You have been downgraded to the Basic plan.');
+                        }
+                    }
+                } else if (plan === 'premium') {
+                    if (currentSubscription.tier === 'premium') {
+                        alert('You are already subscribed to the Premium plan!');
+                    } else {
+                        // Simulate payment processing
+                        alert('Redirecting to payment gateway...\n\nThis is a demo. In production, you would be redirected to a payment processor (e.g., Stripe, Paypal) to process the UGX 15,000 payment.');
+
+                        await updateSubscriptionTier('premium');
+                        await loadSubscriptionStatus();
+                        alert('Welcome to Premium! You now have unlimited translations.');
                     }
                 }
-            } else if (plan === 'premium') {
-                if (currentSubscription.tier === 'premium') {
-                    alert('You are already subscribed to the Premium plan!');
-                } else {
-                    // Simulate payment processing
-                    alert('Redirecting to payment gateway...\n\nThis is a demo. In production, you would be redirected to a payment processor (e.g., Stripe, Paypal) to process the UGX 15,000 payment.');
-
-                    // For demo purposes, simulate successful payment
-                    currentSubscription.tier = 'premium';
-                    currentSubscription.translationsUsed = 0;
-                    currentSubscription.translationLimit = 'Unlimited';
-                    localStorage.setItem('userSubscription', JSON.stringify(currentSubscription));
-                    loadSubscriptionStatus();
-                    alert('Welcome to Premium! You now have unlimited translations.');
-                }
+            } catch (error) {
+                alert(error.message || 'Could not update subscription. Please try again.');
             }
         }
 

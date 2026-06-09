@@ -2,8 +2,16 @@
  * Authentication JavaScript Handler
  */
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = getApiBase();
 const ALLOWED_THEMES = ['light', 'dark', 'system'];
+
+function getApiBase() {
+    const localHosts = ['localhost', '127.0.0.1'];
+    if (localHosts.includes(window.location.hostname)) {
+        return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    }
+    return `${window.location.origin}/api`;
+}
 
 function getSystemTheme() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -106,8 +114,7 @@ if (loginForm) {
                 localStorage.setItem('user_token', data.token);
                 localStorage.setItem('is_logged_in', 'true');
 
-                // Initialize subscription for user
-                initializeUserSubscription();
+                initializeUserSubscription(data.subscription);
 
                 successDiv.textContent = `Welcome back, ${username}! Redirecting...`;
                 successDiv.classList.add('show');
@@ -197,8 +204,7 @@ if (signupForm) {
                 localStorage.setItem('user_token', `user_${data.user_id}`);
                 localStorage.setItem('is_logged_in', 'true');
 
-                // Initialize subscription for new user
-                initializeUserSubscription();
+                initializeUserSubscription(data.subscription);
 
                 // Redirect after 2 seconds
                 setTimeout(() => {
@@ -298,7 +304,11 @@ async function logout(event) {
 /**
  * Initialize subscription for new user
  */
-function initializeUserSubscription() {
+function initializeUserSubscription(serverSubscription) {
+    if (serverSubscription) {
+        storeSubscription(serverSubscription);
+    }
+
     const existingSubscription = JSON.parse(localStorage.getItem('userSubscription') || 'null');
     const currentUserId = localStorage.getItem('user_id');
     const shouldReuse =
@@ -318,12 +328,83 @@ function initializeUserSubscription() {
         subscription.translationLimit = 10;
     }
 
-    localStorage.setItem('userSubscription', JSON.stringify(subscription));
+    storeSubscription(subscription);
     localStorage.setItem('currentUser', JSON.stringify({
         id: currentUserId,
         username: localStorage.getItem('username'),
         email: localStorage.getItem('email')
     }));
+}
+
+function normalizeSubscription(subscription) {
+    const tier = (subscription?.tier || 'basic').toLowerCase();
+    const translationsUsed = Number(subscription?.translations_used ?? subscription?.translationsUsed ?? 0);
+    const serverLimit = subscription?.translation_limit ?? subscription?.translationLimit;
+    const translationLimit = tier === 'premium' ? 'Unlimited' : Number(serverLimit || 10);
+    const computedCanTranslate = tier === 'premium' || translationsUsed < translationLimit;
+    const translationsRemaining = tier === 'premium'
+        ? Infinity
+        : Number(subscription?.translations_remaining ?? subscription?.translationsRemaining ?? Math.max(translationLimit - translationsUsed, 0));
+
+    return {
+        tier,
+        translationsUsed,
+        translationLimit,
+        translationsRemaining,
+        canTranslate: subscription?.can_translate ?? computedCanTranslate,
+        requiresUpgrade: subscription?.requires_upgrade ?? !computedCanTranslate,
+        userId: String(subscription?.user_id ?? subscription?.userId ?? localStorage.getItem('user_id') ?? '')
+    };
+}
+
+function storeSubscription(subscription) {
+    localStorage.setItem('userSubscription', JSON.stringify(normalizeSubscription(subscription)));
+}
+
+async function syncSubscriptionFromServer() {
+    const token = localStorage.getItem('user_token');
+    if (!token) {
+        return getSubscriptionStatus();
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/user/subscription`, {
+            headers: {
+                'Authorization': token
+            }
+        });
+        const data = await response.json();
+        if (response.ok && data.subscription) {
+            storeSubscription(data.subscription);
+        }
+    } catch (error) {
+        console.warn('Subscription sync failed:', error.message);
+    }
+
+    return getSubscriptionStatus();
+}
+
+async function updateSubscriptionTier(tier) {
+    const token = localStorage.getItem('user_token');
+    if (!token) {
+        throw new Error('Please sign in before changing your plan.');
+    }
+
+    const response = await fetch(`${API_BASE}/user/subscription`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+        },
+        body: JSON.stringify({ tier })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || 'Could not update subscription.');
+    }
+
+    storeSubscription(data.subscription);
+    return getSubscriptionStatus();
 }
 
 /**
@@ -345,19 +426,16 @@ function canMakeTranslation() {
     const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
 
     if (!isLoggedIn) {
-        // Guest users can make unlimited translations
-        return true;
+        return false;
     }
 
     const subscription = getSubscriptionStatus();
 
-    if (subscription.tier === 'premium') {
-        // Premium users have unlimited translations
+    if (subscription.tier === 'premium' || subscription.canTranslate === true) {
         return true;
     }
 
-    // Basic plan: 10 translations limit
-    if (subscription.translationsUsed >= subscription.translationLimit) {
+    if (subscription.requiresUpgrade || subscription.translationsUsed >= subscription.translationLimit) {
         return false;
     }
 
@@ -367,17 +445,21 @@ function canMakeTranslation() {
 /**
  * Record a translation
  */
-function recordTranslation() {
+function recordTranslation(serverSubscription) {
+    if (serverSubscription) {
+        storeSubscription(serverSubscription);
+        return;
+    }
+
     const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
 
     if (!isLoggedIn) {
-        // Don't track guest translations
         return;
     }
 
     const subscription = getSubscriptionStatus();
     subscription.translationsUsed = (subscription.translationsUsed || 0) + 1;
-    localStorage.setItem('userSubscription', JSON.stringify(subscription));
+    storeSubscription(subscription);
 }
 
 /**
@@ -394,4 +476,7 @@ function getTranslationsRemaining() {
 }
 
 // Initialize auth on page load
-window.addEventListener('load', updateAuthNav);
+window.addEventListener('load', () => {
+    updateAuthNav();
+    syncSubscriptionFromServer();
+});

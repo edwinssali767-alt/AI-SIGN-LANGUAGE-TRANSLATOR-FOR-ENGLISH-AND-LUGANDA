@@ -1,4 +1,12 @@
-const PROFILE_API_BASE = 'http://localhost:5000/api';
+const PROFILE_API_BASE = getProfileApiBase();
+
+function getProfileApiBase() {
+    const localHosts = ['localhost', '127.0.0.1'];
+    if (localHosts.includes(window.location.hostname)) {
+        return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    }
+    return `${window.location.origin}/api`;
+}
 
 function checkLogin() {
     if (localStorage.getItem('is_logged_in') !== 'true') {
@@ -26,6 +34,10 @@ async function loadProfile() {
         document.getElementById('profileUsername').textContent = displayUsername;
         document.getElementById('profileEmail').textContent = displayEmail;
         document.getElementById('currentEmail').value = displayEmail;
+
+        if (typeof syncSubscriptionFromServer === 'function') {
+            await syncSubscriptionFromServer();
+        }
 
         const subscription = JSON.parse(localStorage.getItem('userSubscription') || '{"tier":"basic"}');
         document.getElementById('accountType').textContent =

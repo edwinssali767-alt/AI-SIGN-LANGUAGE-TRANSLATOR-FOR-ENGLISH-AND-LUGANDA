@@ -92,22 +92,98 @@ def get_user_id_from_token(token):
         return None
 
 
-def log_translation(detected_gesture, target_language, user_id=None):
+def get_free_translation_limit():
+    """Return the free translation quota for basic accounts."""
+    return int(app.config.get('FREE_TRANSLATION_LIMIT', 10))
+
+
+def get_user_row(user_id):
+    """Fetch a user row with subscription details."""
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        '''SELECT id, username, email, created_at, last_login_at, last_logout_at, is_online,
+                  COALESCE(subscription_tier, 'basic') AS subscription_tier
+           FROM users
+           WHERE id = ?''',
+        (user_id,)
+    )
+    return cursor.fetchone()
+
+
+def get_user_translation_count(user_id):
+    """Count all successful translation events recorded for a user."""
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute('SELECT COUNT(*) FROM translations WHERE user_id = ?', (user_id,))
+    return int(cursor.fetchone()[0] or 0)
+
+
+def build_subscription_payload(user_row):
+    """Build a subscription snapshot for the frontend."""
+    if not user_row:
+        return None
+
+    tier = (user_row['subscription_tier'] or 'basic').lower()
+    translations_used = get_user_translation_count(user_row['id'])
+    free_limit = get_free_translation_limit()
+    is_premium = tier == 'premium'
+    can_translate = is_premium or translations_used < free_limit
+
+    return {
+        'user_id': user_row['id'],
+        'tier': tier,
+        'translations_used': translations_used,
+        'translation_limit': None if is_premium else free_limit,
+        'translations_remaining': None if is_premium else max(free_limit - translations_used, 0),
+        'is_premium': is_premium,
+        'can_translate': can_translate,
+        'requires_upgrade': not is_premium and translations_used >= free_limit
+    }
+
+
+def get_user_subscription_payload(user_id):
+    """Fetch the latest subscription snapshot for a user id."""
+    user_row = get_user_row(user_id)
+    return build_subscription_payload(user_row)
+
+
+def log_translation(detected_gesture, target_language, user_id=None, source_language='gesture'):
     """Persist translation event for history and analytics."""
     db = get_db()
     cursor = db.cursor()
 
-    cursor.execute('SELECT id FROM gestures WHERE gesture_name = ?', (detected_gesture,))
-    gesture_row = cursor.fetchone()
-    if not gesture_row:
-        return
+    gesture_id = None
+    if detected_gesture:
+        cursor.execute('SELECT id FROM gestures WHERE gesture_name = ?', (detected_gesture,))
+        gesture_row = cursor.fetchone()
+        if gesture_row:
+            gesture_id = gesture_row[0]
 
     cursor.execute(
         '''INSERT INTO translations (gesture_id, user_id, source_language, target_language, timestamp)
            VALUES (?, ?, ?, ?, ?)''',
-        (gesture_row[0], user_id, 'gesture', target_language, get_nairobi_time())
+        (gesture_id, user_id, source_language, target_language, get_nairobi_time())
     )
     db.commit()
+
+
+def ensure_user_can_translate(user_id):
+    """Validate the account can still use translations."""
+    subscription = get_user_subscription_payload(user_id)
+    if not subscription:
+        return None, (jsonify({'error': 'User not found'}), 404)
+
+    if not subscription['can_translate']:
+        return None, (
+            jsonify({
+                'error': 'Your free 10-translation limit has been reached. Upgrade to Premium or complete payment to continue.',
+                'subscription': subscription
+            }),
+            403
+        )
+
+    return subscription, None
 
 
 def send_welcome_login_email(recipient_email, username):
@@ -165,6 +241,13 @@ def translate_gesture():
         user_id = get_user_id_from_token(token)
         gesture_data = data.get('gesture_image')
         target_language = data.get('target_language', 'english')
+
+        if not user_id:
+            return jsonify({'error': 'Authentication required to translate'}), 401
+
+        subscription, error_response = ensure_user_can_translate(user_id)
+        if error_response:
+            return error_response
         
         if not gesture_data:
             return jsonify({'error': 'No gesture image provided'}), 400
@@ -182,7 +265,8 @@ def translate_gesture():
         return jsonify({
             'gesture': detected_gesture,
             'translation': translation,
-            'language': target_language
+            'language': target_language,
+            'subscription': get_user_subscription_payload(user_id)
         }), 200
         
     except Exception as e:
@@ -201,6 +285,13 @@ def translate_gesture_motion():
         user_id = get_user_id_from_token(token)
         gesture_frames = data.get('gesture_frames', [])
         target_language = data.get('target_language', 'english')
+
+        if not user_id:
+            return jsonify({'error': 'Authentication required to translate'}), 401
+
+        subscription, error_response = ensure_user_can_translate(user_id)
+        if error_response:
+            return error_response
         
         if not gesture_frames or len(gesture_frames) == 0:
             return jsonify({'error': 'No gesture frames provided'}), 400
@@ -238,7 +329,8 @@ def translate_gesture_motion():
             'gesture': detected_gesture,
             'translation': translation,
             'language': target_language,
-            'frames_processed': len(gesture_frames)
+            'frames_processed': len(gesture_frames),
+            'subscription': get_user_subscription_payload(user_id)
         }), 200
         
     except Exception as e:
@@ -561,17 +653,19 @@ def user_signup():
         
         # Create new user
         cursor.execute(
-            '''INSERT INTO users (username, email, password, created_at, last_login_at, is_online)
-               VALUES (?, ?, ?, ?, ?, ?)''',
-            (username, email, generate_password_hash(password), get_nairobi_time(), get_nairobi_time(), 1)
+            '''INSERT INTO users (username, email, password, created_at, last_login_at, is_online, subscription_tier)
+               VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (username, email, generate_password_hash(password), get_nairobi_time(), get_nairobi_time(), 1, 'basic')
         )
         db.commit()
+        subscription = get_user_subscription_payload(cursor.lastrowid)
         
         return jsonify({
             'success': True,
             'user_id': cursor.lastrowid,
             'username': username,
-            'message': 'Account created successfully'
+            'message': 'Account created successfully',
+            'subscription': subscription
         }), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -610,6 +704,8 @@ def user_login():
             email_info = send_welcome_login_email(user[2], user[1])
         except Exception as email_error:
             email_info = {'sent': False, 'reason': str(email_error)}
+
+        subscription = get_user_subscription_payload(user[0])
         
         return jsonify({
             'success': True,
@@ -617,7 +713,8 @@ def user_login():
             'username': user[1],
             'email': user[2],
             'token': f"user_{user[0]}",
-            'welcome_email': email_info
+            'welcome_email': email_info,
+            'subscription': subscription
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -642,6 +739,42 @@ def user_logout():
         db.commit()
 
         return jsonify({'success': True, 'message': 'Logged out'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/subscription', methods=['GET', 'PUT'])
+def user_subscription():
+    """Get or update the current user's subscription tier."""
+    try:
+        token = request.headers.get('Authorization')
+        current_user_id = get_user_id_from_token(token)
+
+        if not current_user_id:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        if request.method == 'GET':
+            subscription = get_user_subscription_payload(current_user_id)
+            if not subscription:
+                return jsonify({'error': 'User not found'}), 404
+
+            return jsonify({'subscription': subscription}), 200
+
+        data = request.get_json(silent=True) or {}
+        requested_tier = str(data.get('tier', '')).strip().lower()
+        if requested_tier not in {'basic', 'premium'}:
+            return jsonify({'error': 'Invalid subscription tier'}), 400
+
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            'UPDATE users SET subscription_tier = ? WHERE id = ?',
+            (requested_tier, current_user_id)
+        )
+        db.commit()
+
+        subscription = get_user_subscription_payload(current_user_id)
+        return jsonify({'success': True, 'subscription': subscription}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -947,8 +1080,17 @@ def translate_word():
     """
     try:
         data = request.get_json(silent=True) or {}
+        token = request.headers.get('Authorization')
+        user_id = get_user_id_from_token(token)
         word = data.get('word', '').strip()
         target_language = data.get('target_language', 'english').lower()
+
+        if not user_id:
+            return jsonify({'error': 'Authentication required to translate'}), 401
+
+        subscription, error_response = ensure_user_can_translate(user_id)
+        if error_response:
+            return error_response
         
         if not word:
             return jsonify({'error': 'No word provided'}), 400
@@ -959,23 +1101,7 @@ def translate_word():
         
         word_lower = word.lower()
         
-        # Log user action
-        user_id = None
-        token = request.headers.get('Authorization')
-        if token and token.startswith('user_'):
-            try:
-                user_id = int(token.split('_')[1])
-                db = get_db()
-                cursor = db.cursor()
-                # Log as a translation event
-                cursor.execute(
-                    '''INSERT INTO translations (gesture_id, user_id, source_language, target_language, timestamp)
-                       VALUES (?, ?, ?, ?, ?)''',
-                    (None, user_id, 'spelled_word', target_language, get_nairobi_time())
-                )
-                db.commit()
-            except (IndexError, ValueError):
-                pass
+        log_translation(None, target_language, user_id, 'spelled_word')
         
         # Return word with indication that it was spelled out
         return jsonify({
@@ -985,7 +1111,8 @@ def translate_word():
             'source': 'finger_spelling',
             'target_language': target_language,
             'success': True,
-            'message': f'Word "{word}" spelled using finger spelling'
+            'message': f'Word "{word}" spelled using finger spelling',
+            'subscription': get_user_subscription_payload(user_id)
         }), 200
         
     except Exception as e:

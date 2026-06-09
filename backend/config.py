@@ -51,6 +51,7 @@ class Config:
 
     # Gesture detection
     CONFIDENCE_THRESHOLD = float(os.getenv('CONFIDENCE_THRESHOLD', '0.5'))
+    FREE_TRANSLATION_LIMIT = int(os.getenv('FREE_TRANSLATION_LIMIT', '10'))
 
     # Email (used for welcome email after successful login)
     SMTP_HOST = os.getenv('SMTP_HOST', '')

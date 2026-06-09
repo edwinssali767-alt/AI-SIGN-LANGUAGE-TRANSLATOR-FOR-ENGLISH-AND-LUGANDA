@@ -135,6 +135,7 @@ def init_sqlite(app):
                 username TEXT NOT NULL UNIQUE,
                 password TEXT NOT NULL,
                 email TEXT NOT NULL UNIQUE,
+                subscription_tier TEXT DEFAULT 'basic',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -169,7 +170,9 @@ def init_sqlite(app):
             cursor.execute('ALTER TABLE users ADD COLUMN last_logout_at TIMESTAMP')
         if 'is_online' not in user_columns:
             cursor.execute('ALTER TABLE users ADD COLUMN is_online INTEGER DEFAULT 0')
-        
+        if 'subscription_tier' not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'basic'")
+
         cursor.execute("PRAGMA table_info(admin_users)")
         admin_columns = [column[1] for column in cursor.fetchall()]
         if 'last_login_at' not in admin_columns:
@@ -200,7 +203,10 @@ def init_sqlite(app):
                     'UPDATE admin_users SET password = ? WHERE id = ?',
                     (generate_password_hash(password), admin_id)
                 )
-        
+
+        # Backfill subscription tier for existing users that predate the field.
+        cursor.execute("UPDATE users SET subscription_tier = COALESCE(NULLIF(subscription_tier, ''), 'basic')")
+
         # Insert sample gestures
         sample_gestures = [
             ('hello', 'Hello', 'Wabale', 'Wave hand in greeting motion'),

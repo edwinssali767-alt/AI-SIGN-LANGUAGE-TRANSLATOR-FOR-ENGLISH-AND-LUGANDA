@@ -1,4 +1,12 @@
-const LETTERS_API_BASE = 'http://localhost:5000/api';
+const LETTERS_API_BASE = getLettersApiBase();
+
+function getLettersApiBase() {
+    const localHosts = ['localhost', '127.0.0.1'];
+    if (localHosts.includes(window.location.hostname)) {
+        return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    }
+    return `${window.location.origin}/api`;
+}
 
 // Letter Capture - Main JavaScript
 
@@ -102,6 +110,11 @@ class LetterCapture {
     async captureLetter() {
         if (!this.video || this.video.readyState < this.video.HAVE_ENOUGH_DATA) {
             alert('Camera not ready');
+            return;
+        }
+
+        if (localStorage.getItem('is_logged_in') !== 'true') {
+            alert('Please sign in before translating.');
             return;
         }
 
@@ -239,6 +252,11 @@ class LetterCapture {
             return;
         }
 
+        if (localStorage.getItem('is_logged_in') !== 'true') {
+            alert('Please sign in before translating.');
+            return;
+        }
+
         if (typeof canMakeTranslation === 'function' && !canMakeTranslation()) {
             if (typeof showSubscriptionModal === 'function') {
                 showSubscriptionModal();
@@ -268,10 +286,16 @@ class LetterCapture {
             if (response.ok) {
                 this.displayTranslationResult(word, targetLanguage);
                 if (typeof recordTranslation === 'function') {
-                    recordTranslation();
+                    recordTranslation(result.subscription);
                 }
                 this.updateStatus('Translation complete');
             } else {
+                if (result.subscription && typeof recordTranslation === 'function') {
+                    recordTranslation(result.subscription);
+                }
+                if (response.status === 403 && typeof showSubscriptionModal === 'function') {
+                    showSubscriptionModal();
+                }
                 this.updateStatus('Translation failed');
                 alert(result.error || 'Translation failed');
             }

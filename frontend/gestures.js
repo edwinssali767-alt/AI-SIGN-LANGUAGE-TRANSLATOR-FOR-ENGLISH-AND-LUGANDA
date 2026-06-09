@@ -1,5 +1,13 @@
 // API Configuration
-const GESTURES_API_BASE = 'http://localhost:5000/api';
+const GESTURES_API_BASE = getGesturesApiBase();
+
+function getGesturesApiBase() {
+    const localHosts = ['localhost', '127.0.0.1'];
+    if (localHosts.includes(window.location.hostname)) {
+        return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    }
+    return `${window.location.origin}/api`;
+}
 
 // Function to update navbar auth state
 function updateAuthNav() {

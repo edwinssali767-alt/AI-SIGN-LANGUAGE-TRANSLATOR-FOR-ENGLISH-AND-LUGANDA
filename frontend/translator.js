@@ -1,4 +1,12 @@
-const TRANSLATOR_API_BASE = 'http://localhost:5000/api';
+const TRANSLATOR_API_BASE = getTranslatorApiBase();
+
+function getTranslatorApiBase() {
+    const localHosts = ['localhost', '127.0.0.1'];
+    if (localHosts.includes(window.location.hostname)) {
+        return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    }
+    return `${window.location.origin}/api`;
+}
 
 let mediaStream = null;
 let currentImageData = null;
@@ -184,6 +192,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const data = await response.json();
             if (!response.ok) {
+                handleTranslationError(response, data);
                 throw new Error(data.error || 'Translation failed');
             }
 
@@ -229,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const data = await response.json();
             if (!response.ok) {
+                handleTranslationError(response, data);
                 throw new Error(data.error || 'Translation failed');
             }
 
@@ -243,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleSuccessfulTranslation(data) {
         displayResult(data);
         if (typeof recordTranslation === 'function') {
-            recordTranslation();
+            recordTranslation(data.subscription);
         }
         refreshHistoryCount();
     }
@@ -389,6 +399,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function canTranslateNow() {
+        if (localStorage.getItem('is_logged_in') !== 'true') {
+            showError('Please sign in before translating.');
+            return false;
+        }
+
         if (typeof canMakeTranslation === 'function' && !canMakeTranslation()) {
             if (typeof showSubscriptionModal === 'function') {
                 showSubscriptionModal();
@@ -398,6 +413,17 @@ document.addEventListener('DOMContentLoaded', function () {
             return false;
         }
         return true;
+    }
+
+    function handleTranslationError(response, data) {
+        if (data.subscription && typeof recordTranslation === 'function') {
+            recordTranslation(data.subscription);
+            refreshHistoryCount();
+        }
+
+        if (response.status === 403 && typeof showSubscriptionModal === 'function') {
+            showSubscriptionModal();
+        }
     }
 
     function buildHeaders() {
