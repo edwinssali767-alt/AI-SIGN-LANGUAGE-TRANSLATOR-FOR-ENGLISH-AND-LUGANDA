@@ -778,10 +778,12 @@ def user_signup():
         db.commit()
         subscription = get_user_subscription_payload(cursor.lastrowid)
         
-        return jsonify({
+return jsonify({
             'success': True,
             'user_id': cursor.lastrowid,
             'username': username,
+            'email': email,
+            'token': f"user_{cursor.lastrowid}",
             'message': 'Account created successfully',
             'subscription': subscription
         }), 201
