@@ -128,17 +128,20 @@ def init_sqlite(app):
             )
         ''')
         
-        # Create regular users table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                subscription_tier TEXT DEFAULT 'basic',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
+# Create regular users table
+         cursor.execute('''
+             CREATE TABLE IF NOT EXISTS users (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 username TEXT NOT NULL UNIQUE,
+                 password TEXT NOT NULL,
+                 email TEXT NOT NULL UNIQUE,
+                 subscription_tier TEXT DEFAULT 'basic',
+                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                 last_login_at TIMESTAMP,
+                 last_logout_at TIMESTAMP,
+                 is_online INTEGER DEFAULT 0
+             )
+         ''')
         
         # Create admin users table
         cursor.execute('''
