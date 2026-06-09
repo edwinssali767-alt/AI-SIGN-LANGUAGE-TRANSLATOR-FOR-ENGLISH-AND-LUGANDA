@@ -1,4 +1,5 @@
 const TRANSLATOR_API_BASE = getTranslatorApiBase();
+const SOCKET_IO_URL = getSocketUrl();
 
 function getTranslatorApiBase() {
     const localHosts = ['localhost', '127.0.0.1'];
@@ -8,12 +9,25 @@ function getTranslatorApiBase() {
     return `${window.location.origin}/api`;
 }
 
+function getSocketUrl() {
+    const localHosts = ['localhost', '127.0.0.1'];
+    if (localHosts.includes(window.location.hostname)) {
+        return `${window.location.protocol}//${window.location.hostname}:5000`;
+    }
+    return `${window.location.origin}`;
+}
+
 let mediaStream = null;
 let currentImageData = null;
 let frameBuffer = [];
 let captureInterval = null;
 let isCapturing = false;
 let feedbackUpdateInterval = null;
+let socket = null;
+let isRealtimeMode = false;
+let realtimeFrameInterval = null;
+let realtimeBtn = null;
+let targetLanguage = null;
 
 const feedbackElements = {
     currentSign: document.getElementById('currentSign'),
@@ -29,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const cameraFeed = document.getElementById('cameraFeed');
     const photoCanvas = document.getElementById('photoCanvas');
     const gestureUpload = document.getElementById('gestureUpload');
-    const targetLanguage = document.getElementById('targetLanguage');
+    targetLanguage = document.getElementById('targetLanguage');
     const translationLabel = document.getElementById('translationLabel');
     const resultContainer = document.getElementById('resultContainer');
     const errorContainer = document.getElementById('errorContainer');
@@ -63,11 +77,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const learningVideoPreviewContainer = document.getElementById('learningVideoPreviewContainer');
     const learningVideoPreview = document.getElementById('learningVideoPreview');
     const learningLessons = document.getElementById('learningLessons');
+    realtimeBtn = document.getElementById('realtimeBtn');
 
     if (!startCameraBtn || !captureBtn || !stopCameraBtn || !detectedGesture || !translationResult) {
         console.error('Translator page is missing required DOM elements');
         return;
     }
+
+    initSocket();
 
     resultContainer.classList.add('hidden');
     updateTranslationLabel();
@@ -79,6 +96,9 @@ document.addEventListener('DOMContentLoaded', function () {
     stopCameraBtn.addEventListener('click', stopCamera);
     captureBtn.addEventListener('click', captureGesture);
     gestureUpload.addEventListener('change', handleFileUpload);
+    if (realtimeBtn) {
+        realtimeBtn.addEventListener('click', toggleRealtimeMode);
+    }
     newTranslationBtn.style.display = 'none';
     if (closeErrorBtn) {
         closeErrorBtn.addEventListener('click', hideError);
@@ -103,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
             startCameraBtn.disabled = true;
             captureBtn.disabled = false;
             stopCameraBtn.disabled = false;
+            realtimeBtn.disabled = false;
             showSuccess('Camera started');
         } catch (error) {
             showError(`Camera error: ${error.message}`);
@@ -115,6 +136,10 @@ document.addEventListener('DOMContentLoaded', function () {
             captureInterval = null;
         }
 
+        if (isRealtimeMode) {
+            stopRealtimeMode();
+        }
+
         if (mediaStream) {
             mediaStream.getTracks().forEach((track) => track.stop());
             mediaStream = null;
@@ -125,9 +150,155 @@ document.addEventListener('DOMContentLoaded', function () {
         startCameraBtn.disabled = false;
         captureBtn.disabled = true;
         stopCameraBtn.disabled = true;
+        realtimeBtn.disabled = true;
         captureBtn.textContent = 'Capture Gesture';
         captureBtn.style.background = '';
         showSuccess('Camera stopped');
+    }
+
+    function initSocket() {
+        if (socket) {
+            socket.disconnect();
+        }
+
+        const token = localStorage.getItem('user_token');
+        if (!token) {
+            console.warn('No auth token found for real-time mode');
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+        script.onload = function() {
+            socket = io(SOCKET_IO_URL, {
+                transports: ['polling', 'websocket']
+            });
+
+            socket.on('connect', function() {
+                console.log('Socket connected for real-time translation');
+            });
+
+            socket.on('realtime_status', function(data) {
+                console.log('Real-time status:', data);
+            });
+
+            socket.on('realtime_result', function(data) {
+                handleRealtimeResult(data);
+            });
+
+            socket.on('realtime_error', function(data) {
+                showError(data.error || 'Real-time translation error');
+            });
+
+            socket.on('realtime_limit', function(data) {
+                if (typeof showSubscriptionModal === 'function') {
+                    showSubscriptionModal();
+                }
+                stopRealtimeMode();
+            });
+
+            socket.on('disconnect', function() {
+                console.log('Socket disconnected');
+            });
+        };
+        script.onerror = function() {
+            console.error('Failed to load Socket.IO client library');
+            if (realtimeBtn) {
+                realtimeBtn.disabled = true;
+                realtimeBtn.textContent = 'Real-time Unavailable';
+            }
+        };
+        document.head.appendChild(script);
+    }
+
+    function toggleRealtimeMode() {
+        if (!isRealtimeMode) {
+            startRealtimeMode();
+        } else {
+            stopRealtimeMode();
+        }
+    }
+
+    function startRealtimeMode() {
+        if (!socket || !socket.connected) {
+            showError('Socket not connected. Please try again.');
+            return;
+        }
+
+        if (!canTranslateNow()) {
+            return;
+        }
+
+        const token = localStorage.getItem('user_token');
+        if (!token) {
+            showError('Please sign in first.');
+            return;
+        }
+
+        isRealtimeMode = true;
+        realtimeBtn.textContent = 'Stop Real-time';
+        realtimeBtn.style.background = 'red';
+        captureBtn.disabled = true;
+
+        socket.emit('start_realtime', {
+            token: token,
+            target_language: targetLanguage.value
+        });
+
+        const ctx = photoCanvas.getContext('2d');
+        photoCanvas.width = cameraFeed.videoWidth;
+        photoCanvas.height = cameraFeed.videoHeight;
+
+        realtimeFrameInterval = setInterval(() => {
+            ctx.drawImage(cameraFeed, 0, 0);
+            const frameData = photoCanvas.toDataURL('image/jpeg', 0.7);
+            socket.emit('realtime_frame', {
+                token: token,
+                frame: frameData,
+                target_language: targetLanguage.value
+            });
+        }, 200);
+    }
+
+    function stopRealtimeMode() {
+        if (realtimeFrameInterval) {
+            clearInterval(realtimeFrameInterval);
+            realtimeFrameInterval = null;
+        }
+
+        if (socket && socket.connected) {
+            socket.emit('stop_realtime');
+        }
+
+        isRealtimeMode = false;
+        if (realtimeBtn) {
+            realtimeBtn.textContent = 'Real-time Translation';
+            realtimeBtn.style.background = '';
+            realtimeBtn.disabled = false;
+        }
+        captureBtn.disabled = false;
+        clearFeedback();
+    }
+
+    function handleRealtimeResult(data) {
+        if (data.gesture) {
+            detectedGesture.textContent = formatGestureName(data.gesture) || '-';
+            translationResult.textContent = data.translation || '-';
+
+            updateFeedbackDisplay({
+                gesture: data.gesture,
+                confidence: data.confidence,
+                speed: data.speed
+            });
+
+            if (resultImage) {
+                resultImage.src = photoCanvas.toDataURL('image/jpeg', 0.8);
+                resultImage.style.display = 'block';
+            }
+
+            resultContainer.classList.remove('hidden');
+            showClearFeedbackBtn();
+        }
     }
 
     function captureGesture() {

@@ -5,6 +5,7 @@ Main Flask application file
 
 from flask import Flask, request, jsonify, g, send_from_directory
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 from config import Config, PROJECT_BACKEND_DIR
 from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
@@ -24,6 +25,8 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, origins=['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:5000', 'http://127.0.0.1:5000'])
 app.config.from_object(Config)
+
+socketio = SocketIO(app, cors_allowed_origins=['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:5000', 'http://127.0.0.1:5000'])
 
 FRONTEND_FOLDER = PROJECT_BACKEND_DIR.parent / 'frontend'
 VIDEO_FOLDER = app.config['LEARNING_VIDEO_FOLDER']
@@ -336,6 +339,78 @@ def translate_gesture_motion():
     except Exception as e:
         print(f"Error in translate_gesture_motion: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@socketio.on('start_realtime')
+def handle_realtime_start(data):
+    """Start real-time gesture recognition session."""
+    token = data.get('token')
+    user_id = get_user_id_from_token(token)
+    target_language = data.get('target_language', 'english')
+    
+    if not user_id:
+        emit('realtime_error', {'error': 'Authentication required'})
+        return
+    
+    subscription, error_response = ensure_user_can_translate(user_id)
+    if error_response:
+        emit('realtime_error', error_response[0].get_json())
+        return
+    
+    emit('realtime_status', {'status': 'ready', 'message': 'Real-time translation ready'})
+
+
+@socketio.on('realtime_frame')
+def handle_realtime_frame(data):
+    """Process a single frame for real-time gesture recognition."""
+    token = data.get('token')
+    user_id = get_user_id_from_token(token)
+    frame_data = data.get('frame')
+    target_language = data.get('target_language', 'english')
+    
+    if not user_id:
+        emit('realtime_error', {'error': 'Authentication required'})
+        return
+    
+    subscription, error_response = ensure_user_can_translate(user_id)
+    if error_response:
+        emit('realtime_limit', error_response[0].get_json())
+        return
+    
+    if not frame_data:
+        emit('realtime_error', {'error': 'No frame data'})
+        return
+    
+    import time
+    start_time = time.time()
+    
+    detected_gesture = gesture_processor.process_gesture(frame_data)
+    confidence = 0.85
+    
+    if detected_gesture:
+        translation = translator.translate(detected_gesture, target_language)
+        elapsed_ms = (time.time() - start_time) * 1000
+        
+        emit('realtime_result', {
+            'gesture': detected_gesture,
+            'translation': translation,
+            'confidence': confidence,
+            'speed': round(elapsed_ms, 2),
+            'language': target_language
+        })
+    else:
+        emit('realtime_result', {
+            'gesture': None,
+            'translation': None,
+            'confidence': 0,
+            'speed': (time.time() - start_time) * 1000
+        })
+
+
+@socketio.on('stop_realtime')
+def handle_realtime_stop():
+    """Stop real-time gesture recognition session."""
+    emit('realtime_status', {'status': 'stopped', 'message': 'Real-time translation stopped'})
 
 
 @app.route('/api/gestures', methods=['GET'])
@@ -1196,4 +1271,4 @@ def close_db(error):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
