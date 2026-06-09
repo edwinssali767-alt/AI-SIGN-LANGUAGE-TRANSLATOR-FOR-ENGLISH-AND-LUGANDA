@@ -9,7 +9,7 @@ for path in (project_root, backend_dir):
         sys.path.insert(0, str(path))
 os.chdir(backend_dir)
 
-from backend.app import app as application
+from backend.server import app as application
 
 # Gunicorn looks for 'application' or 'app'
 app = application

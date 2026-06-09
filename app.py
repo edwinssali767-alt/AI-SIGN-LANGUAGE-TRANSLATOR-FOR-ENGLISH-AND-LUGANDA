@@ -1,8 +1,11 @@
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 
-from app import app as application, socketio
+backend_path = os.path.join(os.path.dirname(__file__), 'backend')
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
+
+from server import app as application, socketio
 
 if __name__ == "__main__":
     if socketio:
