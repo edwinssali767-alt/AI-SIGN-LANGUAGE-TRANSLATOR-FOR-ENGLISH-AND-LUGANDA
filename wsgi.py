@@ -1,7 +1,12 @@
-#!/usr/bin/env python
-import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backend'))
-from app import app
-app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+import sys
+from pathlib import Path
+
+backend_dir = Path(__file__).parent / 'backend'
+sys.path.insert(0, str(backend_dir))
+os.chdir(backend_dir)
+
+from app import app as application
+
+if __name__ == '__main__':
+    application.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
