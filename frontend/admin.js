@@ -308,6 +308,19 @@ async function handleLogin(e) {
         hideLoginError();
         showLoading(true);
 
+        // Check server status first
+        let serverOk = false;
+        try {
+            const healthCheck = await fetch(`${API_BASE}/health`, { method: 'GET' });
+            serverOk = healthCheck.ok;
+        } catch (healthError) {
+            console.warn('Health check failed:', healthError);
+        }
+
+        if (!serverOk) {
+            throw new Error('Backend server is not running. Please start the Flask server.');
+        }
+
         const response = await fetch(`${API_BASE}/admin/login`, {
             method: 'POST',
             headers: {

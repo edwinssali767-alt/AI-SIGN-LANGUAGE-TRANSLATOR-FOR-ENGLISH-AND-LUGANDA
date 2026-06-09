@@ -23,10 +23,10 @@ load_dotenv()
 
 
 app = Flask(__name__)
-CORS(app, origins=['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:5000', 'http://127.0.0.1:5000'])
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.config.from_object(Config)
 
-socketio = SocketIO(app, cors_allowed_origins=['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:5000', 'http://127.0.0.1:5000'])
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 FRONTEND_FOLDER = PROJECT_BACKEND_DIR.parent / 'frontend'
 VIDEO_FOLDER = app.config['LEARNING_VIDEO_FOLDER']
@@ -471,7 +471,45 @@ def admin_login():
         data = request.get_json(silent=True) or {}
         username = data.get('username')
         password = data.get('password')
-        
+
+        # Check environment-based admin credentials
+        env_admin_user = app.config.get('ADMIN_USERNAME')
+        env_admin_pass = app.config.get('ADMIN_PASSWORD')
+        if env_admin_user and env_admin_pass and username == env_admin_user and password == env_admin_pass:
+            db = get_db()
+            cursor = db.cursor()
+            cursor.execute(
+                'SELECT id, username FROM admin_users WHERE username = ? OR username = ?',
+                (username, 'admin')
+            )
+            user = cursor.fetchone()
+
+            if not user:
+                # Create admin user from env if doesn't exist
+                cursor.execute(
+                    'INSERT INTO admin_users (username, password, created_at) VALUES (?, ?, ?)',
+                    (username, generate_password_hash(password), get_nairobi_time())
+                )
+                db.commit()
+                user_id = cursor.lastrowid
+                user_name = username
+            else:
+                user_id = user[0]
+                user_name = user[1]
+
+            cursor.execute(
+                'UPDATE admin_users SET last_login_at = ? WHERE id = ?',
+                (get_nairobi_time(), user_id)
+            )
+            db.commit()
+
+            return jsonify({
+                'success': True,
+                'admin_id': user_id,
+                'username': user_name,
+                'token': f"admin_{user_id}"
+            }), 200
+
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
@@ -479,7 +517,7 @@ def admin_login():
             (username,)
         )
         user = cursor.fetchone()
-        
+
         if not user or not verify_password(user[2], password):
             return jsonify({'error': 'Invalid credentials'}), 401
 
@@ -488,7 +526,7 @@ def admin_login():
             (get_nairobi_time(), user[0])
         )
         db.commit()
-        
+
         return jsonify({
             'success': True,
             'admin_id': user[0],
@@ -496,6 +534,7 @@ def admin_login():
             'token': f"admin_{user[0]}"
         }), 200
     except Exception as e:
+        print(f"Admin login error: {e}")
         return jsonify({'error': str(e)}), 500
 
 

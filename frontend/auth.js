@@ -13,6 +13,18 @@ function getApiBase() {
     return `${window.location.origin}/api`;
 }
 
+async function checkServerStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/health`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(3000)
+        });
+        return response.ok;
+    } catch (error) {
+        return false;
+    }
+}
+
 function getSystemTheme() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -182,7 +194,12 @@ if (signupForm) {
         submitBtn.disabled = true;
         submitBtn.classList.add('loading');
 
-        try {
+try {
+            const serverOk = await checkServerStatus();
+            if (!serverOk) {
+                throw new Error('Backend server is not running. Please start the Flask server on port 5000.');
+            }
+
             const response = await fetch(`${API_BASE}/user/signup`, {
                 method: 'POST',
                 headers: {
@@ -201,7 +218,7 @@ if (signupForm) {
                 localStorage.setItem('user_id', data.user_id);
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('email', email);
-                localStorage.setItem('user_token', `user_${data.user_id}`);
+                localStorage.setItem('user_token', data.token || `user_${data.user_id}`);
                 localStorage.setItem('is_logged_in', 'true');
 
                 initializeUserSubscription(data.subscription);
@@ -211,15 +228,23 @@ if (signupForm) {
                     window.location.href = 'profile.html';
                 }, 2000);
             } else {
+                let errorMsg = data.error || 'Signup failed. Please try again.';
                 if (response.status === 409) {
-                    errorDiv.textContent = 'Username or email already exists';
-                } else {
-                    errorDiv.textContent = data.error || 'Signup failed. Please try again.';
+                    errorMsg = 'Username or email already exists';
+                } else if (response.status === 401) {
+                    errorMsg = 'Authentication required';
+                } else if (response.status === 400) {
+                    errorMsg = data.error || 'Invalid input data';
                 }
+                errorDiv.textContent = errorMsg;
                 errorDiv.classList.add('show');
             }
         } catch (error) {
-            errorDiv.textContent = 'Network error. Please check your connection.';
+            let networkMsg = 'Network error. Please check your connection.';
+            if (error.message.includes('Failed to fetch') || !navigator.onLine) {
+                networkMsg = 'Cannot connect to server. Please ensure the backend is running.';
+            }
+            errorDiv.textContent = networkMsg;
             errorDiv.classList.add('show');
             console.error('Signup error:', error);
         } finally {

@@ -15,6 +15,10 @@ class Config:
     TESTING = False
     SECRET_KEY = os.getenv('SECRET_KEY', 'change-me-in-production')
 
+    # Admin credentials (optional - for initial setup)
+    ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
+    ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
+
     # MongoDB Atlas
     MONGODB_URI = os.getenv('MONGODB_URI', '')
     MONGODB_DB_NAME = os.getenv('MONGODB_DB_NAME', 'sign_language_translator')
@@ -45,6 +49,7 @@ class Config:
 
     # CORS
     CORS_HEADERS = 'Content-Type'
+    CORS_ORIGINS = '*'
 
     # Upload constraints
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
