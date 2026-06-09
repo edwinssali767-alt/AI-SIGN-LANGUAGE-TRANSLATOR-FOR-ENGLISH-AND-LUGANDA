@@ -224,6 +224,7 @@ if (signupForm) {
             console.log('API_BASE:', API_BASE);
             console.log('Fetching:', `${API_BASE}/user/signup`);
             const serverOk = await checkServerStatus();
+            console.log('Server OK:', serverOk);
             if (!serverOk) {
                 throw new Error('Server unreachable');
             }
@@ -262,6 +263,8 @@ if (signupForm) {
                     errorMsg = 'Authentication required';
                 } else if (response.status === 400) {
                     errorMsg = data.error || 'Invalid input data';
+                } else if (response.status >= 500) {
+                    errorMsg = data.error || 'Server error. Please try again later.';
                 }
                 errorDiv.textContent = errorMsg;
                 errorDiv.classList.add('show');
