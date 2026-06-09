@@ -3,6 +3,10 @@
  */
 
 const API_BASE = (() => {
+    if (window.location.protocol === 'file:') {
+        console.warn('Opened as file:// - using localhost:5000/api. Run: python -m flask run --port=5000');
+        return 'http://localhost:5000/api';
+    }
     const localHosts = ['localhost', '127.0.0.1'];
     if (localHosts.includes(window.location.hostname)) {
         return `${window.location.protocol}//${window.location.hostname}:5000/api`;
@@ -12,6 +16,9 @@ const API_BASE = (() => {
 const ALLOWED_THEMES = ['light', 'dark', 'system'];
 
 function getApiBase() {
+    if (window.location.protocol === 'file:') {
+        return 'http://localhost:5000/api';
+    }
     const localHosts = ['localhost', '127.0.0.1'];
     if (localHosts.includes(window.location.hostname)) {
         return `${window.location.protocol}//${window.location.hostname}:5000/api`;

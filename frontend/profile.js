@@ -1,6 +1,9 @@
 const PROFILE_API_BASE = getProfileApiBase();
 
 function getProfileApiBase() {
+    if (window.location.protocol === 'file:') {
+        return 'http://localhost:5000/api';
+    }
     const localHosts = ['localhost', '127.0.0.1'];
     if (localHosts.includes(window.location.hostname)) {
         return `${window.location.protocol}//${window.location.hostname}:5000/api`;

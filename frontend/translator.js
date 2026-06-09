@@ -2,6 +2,9 @@ const TRANSLATOR_API_BASE = getTranslatorApiBase();
 const SOCKET_IO_URL = getSocketUrl();
 
 function getTranslatorApiBase() {
+    if (window.location.protocol === 'file:') {
+        return 'http://localhost:5000/api';
+    }
     const localHosts = ['localhost', '127.0.0.1'];
     if (localHosts.includes(window.location.hostname)) {
         return `${window.location.protocol}//${window.location.hostname}:5000/api`;
@@ -10,6 +13,9 @@ function getTranslatorApiBase() {
 }
 
 function getSocketUrl() {
+    if (window.location.protocol === 'file:') {
+        return 'http://localhost:5000';
+    }
     const localHosts = ['localhost', '127.0.0.1'];
     if (localHosts.includes(window.location.hostname)) {
         return `${window.location.protocol}//${window.location.hostname}:5000`;
