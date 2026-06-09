@@ -97,7 +97,7 @@ def get_user_id_from_token(token):
     if not token or not token.startswith('user_'):
         return None
     try:
-        return int(token.split('_')[1])
+        return token.split('_')[1]  # Return as string for MongoDB ObjectId compatibility
     except (IndexError, ValueError):
         return None
 
@@ -109,39 +109,40 @@ def get_free_translation_limit():
 
 def get_user_row(user_id):
     """Fetch a user row with subscription details."""
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute(
-        '''SELECT id, username, email, created_at, last_login_at, last_logout_at, is_online,
-                  COALESCE(subscription_tier, 'basic') AS subscription_tier
-           FROM users
-           WHERE id = ?''',
-        (user_id,)
-    )
-    return cursor.fetchone()
+    from bson import ObjectId
+    users = get_users_collection()
+    try:
+        object_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        object_id = user_id
+    return users.find_one({'_id': object_id})
 
 
 def get_user_translation_count(user_id):
     """Count all successful translation events recorded for a user."""
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('SELECT COUNT(*) FROM translations WHERE user_id = ?', (user_id,))
-    return int(cursor.fetchone()[0] or 0)
+    from bson import ObjectId
+    translations = get_translations_collection()
+    try:
+        object_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        object_id = user_id
+    return int(translations.count_documents({'user_id': str(object_id)}))
 
 
 def build_subscription_payload(user_row):
     """Build a subscription snapshot for the frontend."""
     if not user_row:
         return None
-
-    tier = (user_row['subscription_tier'] or 'basic').lower()
-    translations_used = get_user_translation_count(user_row['id'])
+    
+    tier = (user_row.get('subscription_tier') or 'basic').lower()
+    user_id = user_row.get('_id') or user_row.get('id')
+    translations_used = get_user_translation_count(user_id)
     free_limit = get_free_translation_limit()
     is_premium = tier == 'premium'
     can_translate = is_premium or translations_used < free_limit
-
+    
     return {
-        'user_id': user_row['id'],
+        'user_id': str(user_id),
         'tier': tier,
         'translations_used': translations_used,
         'translation_limit': None if is_premium else free_limit,
@@ -160,22 +161,22 @@ def get_user_subscription_payload(user_id):
 
 def log_translation(detected_gesture, target_language, user_id=None, source_language='gesture'):
     """Persist translation event for history and analytics."""
-    db = get_db()
-    cursor = db.cursor()
-
+    translations = get_translations_collection()
+    gestures = get_gestures_collection()
+    
     gesture_id = None
     if detected_gesture:
-        cursor.execute('SELECT id FROM gestures WHERE gesture_name = ?', (detected_gesture,))
-        gesture_row = cursor.fetchone()
-        if gesture_row:
-            gesture_id = gesture_row[0]
-
-    cursor.execute(
-        '''INSERT INTO translations (gesture_id, user_id, source_language, target_language, timestamp)
-           VALUES (?, ?, ?, ?, ?)''',
-        (gesture_id, user_id, source_language, target_language, get_nairobi_time())
-    )
-    db.commit()
+        gesture_doc = gestures.find_one({'gesture_name': detected_gesture})
+        if gesture_doc:
+            gesture_id = str(gesture_doc['_id'])
+    
+    translations.insert_one({
+        'gesture_id': gesture_id,
+        'user_id': str(user_id) if user_id else None,
+        'source_language': source_language,
+        'target_language': target_language,
+        'timestamp': get_nairobi_time()
+    })
 
 
 def ensure_user_can_translate(user_id):
@@ -421,18 +422,14 @@ def handle_realtime_stop():
 def get_gestures():
     """Get all available gestures"""
     try:
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT id, gesture_name, english_meaning, luganda_meaning FROM gestures')
-        gestures = cursor.fetchall()
-        
+        gestures = get_gestures_collection()
         gesture_list = [
             {
-                'id': g[0],
-                'gesture_name': g[1],
-                'english_meaning': g[2],
-                'luganda_meaning': g[3]
-            } for g in gestures
+                'id': str(g.get('_id')),
+                'gesture_name': g.get('gesture_name'),
+                'english_meaning': g.get('english_meaning'),
+                'luganda_meaning': g.get('luganda_meaning')
+            } for g in gestures.find({})
         ]
         
         return jsonify({'gestures': gesture_list}), 200
@@ -444,23 +441,25 @@ def get_gestures():
 def get_gesture(gesture_id):
     """Get specific gesture details"""
     try:
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            'SELECT id, gesture_name, english_meaning, luganda_meaning, description FROM gestures WHERE id = ?',
-            (gesture_id,)
-        )
-        gesture = cursor.fetchone()
+        from bson import ObjectId
+        gestures = get_gestures_collection()
+        
+        try:
+            object_id = ObjectId(gesture_id)
+        except:
+            object_id = gesture_id
+        
+        gesture = gestures.find_one({'_id': object_id})
         
         if not gesture:
             return jsonify({'error': 'Gesture not found'}), 404
         
         return jsonify({
-            'id': gesture[0],
-            'gesture_name': gesture[1],
-            'english_meaning': gesture[2],
-            'luganda_meaning': gesture[3],
-            'description': gesture[4]
+            'id': str(gesture.get('_id')),
+            'gesture_name': gesture.get('gesture_name'),
+            'english_meaning': gesture.get('english_meaning'),
+            'luganda_meaning': gesture.get('luganda_meaning'),
+            'description': gesture.get('description')
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -475,67 +474,55 @@ def admin_login():
         data = request.get_json(silent=True) or {}
         username = data.get('username')
         password = data.get('password')
-
+        
+        admin_users = get_admins_collection()
+        
         # Check environment-based admin credentials
         env_admin_user = app.config.get('ADMIN_USERNAME')
         env_admin_pass = app.config.get('ADMIN_PASSWORD')
         if env_admin_user and env_admin_pass and username == env_admin_user and password == env_admin_pass:
-            db = get_db()
-            cursor = db.cursor()
-            cursor.execute(
-                'SELECT id, username FROM admin_users WHERE username = ? OR username = ?',
-                (username, 'admin')
-            )
-            user = cursor.fetchone()
-
+            user = admin_users.find_one({'username': username})
+            
             if not user:
                 # Create admin user from env if doesn't exist
-                cursor.execute(
-                    'INSERT INTO admin_users (username, password, created_at) VALUES (?, ?, ?)',
-                    (username, generate_password_hash(password), get_nairobi_time())
-                )
-                db.commit()
-                user_id = cursor.lastrowid
+                result = admin_users.insert_one({
+                    'username': username,
+                    'password': generate_password_hash(password),
+                    'created_at': get_nairobi_time(),
+                    'last_login_at': get_nairobi_time()
+                })
+                user_id = result.inserted_id
                 user_name = username
             else:
-                user_id = user[0]
-                user_name = user[1]
-
-            cursor.execute(
-                'UPDATE admin_users SET last_login_at = ? WHERE id = ?',
-                (get_nairobi_time(), user_id)
-            )
-            db.commit()
-
+                user_id = user['_id']
+                user_name = user['username']
+                admin_users.update_one(
+                    {'_id': user_id},
+                    {'$set': {'last_login_at': get_nairobi_time()}}
+                )
+            
             return jsonify({
                 'success': True,
-                'admin_id': user_id,
+                'admin_id': str(user_id),
                 'username': user_name,
                 'token': f"admin_{user_id}"
             }), 200
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            'SELECT id, username, password FROM admin_users WHERE username = ?',
-            (username,)
-        )
-        user = cursor.fetchone()
-
-        if not user or not verify_password(user[2], password):
+        
+        user = admin_users.find_one({'username': username})
+        
+        if not user or not verify_password(user['password'], password):
             return jsonify({'error': 'Invalid credentials'}), 401
-
-        cursor.execute(
-            'UPDATE admin_users SET last_login_at = ? WHERE id = ?',
-            (get_nairobi_time(), user[0])
+        
+        admin_users.update_one(
+            {'_id': user['_id']},
+            {'$set': {'last_login_at': get_nairobi_time()}}
         )
-        db.commit()
-
+        
         return jsonify({
             'success': True,
-            'admin_id': user[0],
-            'username': user[1],
-            'token': f"admin_{user[0]}"
+            'admin_id': str(user['_id']),
+            'username': user['username'],
+            'token': f"admin_{user['_id']}"
         }), 200
     except Exception as e:
         print(f"Admin login error: {e}")
@@ -626,20 +613,14 @@ def admin_stats():
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
         
-        db = get_db()
-        cursor = db.cursor()
+        users = get_users_collection()
+        gestures = get_gestures_collection()
+        translations = get_translations_collection()
         
-        cursor.execute('SELECT COUNT(*) FROM gestures')
-        total_gestures = cursor.fetchone()[0]
-        
-        cursor.execute('SELECT COUNT(*) FROM translations')
-        total_translations = cursor.fetchone()[0]
-
-        cursor.execute('SELECT COUNT(*) FROM users')
-        total_users = cursor.fetchone()[0]
-
-        cursor.execute('SELECT COUNT(*) FROM users WHERE is_online = 1')
-        logged_in_users = cursor.fetchone()[0]
+        total_gestures = gestures.count_documents({})
+        total_translations = translations.count_documents({})
+        total_users = users.count_documents({})
+        logged_in_users = users.count_documents({'is_online': 1})
         
         return jsonify({
             'total_gestures': total_gestures,
@@ -693,18 +674,22 @@ def admin_delete_user(user_id):
         token = request.headers.get('Authorization')
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
-
-        db = get_db()
-        cursor = db.cursor()
-
-        cursor.execute('SELECT id FROM users WHERE id = ?', (user_id,))
-        if not cursor.fetchone():
+        
+        from bson import ObjectId
+        users = get_users_collection()
+        translations = get_translations_collection()
+        
+        try:
+            object_id = ObjectId(user_id)
+        except:
+            object_id = user_id
+        
+        if not users.find_one({'_id': object_id}):
             return jsonify({'error': 'User not found'}), 404
-
-        cursor.execute('DELETE FROM translations WHERE user_id = ?', (user_id,))
-        cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
-        db.commit()
-
+        
+        translations.delete_many({'user_id': str(object_id)})
+        users.delete_one({'_id': object_id})
+        
         return jsonify({'success': True, 'message': 'User deleted'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -717,24 +702,28 @@ def admin_change_user_password(user_id):
         token = request.headers.get('Authorization')
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
-
+        
         data = request.get_json() or {}
         new_password = data.get('new_password', '')
         if len(new_password) < 6:
             return jsonify({'error': 'Password must be at least 6 characters'}), 400
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT id FROM users WHERE id = ?', (user_id,))
-        if not cursor.fetchone():
+        
+        from bson import ObjectId
+        users = get_users_collection()
+        
+        try:
+            object_id = ObjectId(user_id)
+        except:
+            object_id = user_id
+        
+        if not users.find_one({'_id': object_id}):
             return jsonify({'error': 'User not found'}), 404
-
-        cursor.execute(
-            'UPDATE users SET password = ? WHERE id = ?',
-            (generate_password_hash(new_password), user_id)
+        
+        users.update_one(
+            {'_id': object_id},
+            {'$set': {'password': generate_password_hash(new_password)}}
         )
-        db.commit()
-
+        
         return jsonify({'success': True, 'message': 'Password updated'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -761,29 +750,33 @@ def user_signup():
         if len(password) < 6:
             return jsonify({'error': 'Password must be at least 6 characters'}), 400
         
-        db = get_db()
-        cursor = db.cursor()
+        users = get_users_collection()
+        now = get_nairobi_time()
         
         # Check if user already exists
-        cursor.execute('SELECT id FROM users WHERE username = ? OR email = ?', (username, email))
-        if cursor.fetchone():
+        if users.find_one({'username': username}) or users.find_one({'email': email}):
             return jsonify({'error': 'Username or email already exists'}), 409
         
         # Create new user
-        cursor.execute(
-            '''INSERT INTO users (username, email, password, created_at, last_login_at, is_online, subscription_tier)
-               VALUES (?, ?, ?, ?, ?, ?, ?)''',
-            (username, email, generate_password_hash(password), get_nairobi_time(), get_nairobi_time(), 1, 'basic')
-        )
-        db.commit()
-        subscription = get_user_subscription_payload(cursor.lastrowid)
-        
-return jsonify({
-            'success': True,
-            'user_id': cursor.lastrowid,
+        user_doc = {
             'username': username,
             'email': email,
-            'token': f"user_{cursor.lastrowid}",
+            'password': generate_password_hash(password),
+            'created_at': now,
+            'last_login_at': now,
+            'is_online': 1,
+            'subscription_tier': 'basic'
+        }
+        result = users.insert_one(user_doc)
+        user_id = result.inserted_id
+        subscription = get_user_subscription_payload(user_id)
+        
+        return jsonify({
+            'success': True,
+            'user_id': user_id,
+            'username': username,
+            'email': email,
+            'token': f"user_{user_id}",
             'message': 'Account created successfully',
             'subscription': subscription
         }), 201
@@ -802,37 +795,31 @@ def user_login():
         if not username or not password:
             return jsonify({'error': 'Missing username or password'}), 400
         
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            'SELECT id, username, email, password FROM users WHERE username = ?',
-            (username,)
-        )
-        user = cursor.fetchone()
+        users = get_users_collection()
+        user = users.find_one({'username': username})
         
-        if not user or not verify_password(user[3], password):
+        if not user or not verify_password(user['password'], password):
             return jsonify({'error': 'Invalid credentials'}), 401
-
-        cursor.execute(
-            'UPDATE users SET last_login_at = ?, is_online = 1 WHERE id = ?',
-            (get_nairobi_time(), user[0])
+        
+        users.update_one(
+            {'_id': user['_id']},
+            {'$set': {'last_login_at': get_nairobi_time(), 'is_online': 1}}
         )
-        db.commit()
-
+        
         email_info = {'sent': False, 'reason': 'not_attempted'}
         try:
-            email_info = send_welcome_login_email(user[2], user[1])
+            email_info = send_welcome_login_email(user['email'], user['username'])
         except Exception as email_error:
             email_info = {'sent': False, 'reason': str(email_error)}
-
-        subscription = get_user_subscription_payload(user[0])
+        
+        subscription = get_user_subscription_payload(user['_id'])
         
         return jsonify({
             'success': True,
-            'user_id': user[0],
-            'username': user[1],
-            'email': user[2],
-            'token': f"user_{user[0]}",
+            'user_id': str(user['_id']),
+            'username': user['username'],
+            'email': user['email'],
+            'token': f"user_{user['_id']}",
             'welcome_email': email_info,
             'subscription': subscription
         }), 200
@@ -880,19 +867,24 @@ def user_subscription():
 
             return jsonify({'subscription': subscription}), 200
 
-        data = request.get_json(silent=True) or {}
+data = request.get_json(silent=True) or {}
         requested_tier = str(data.get('tier', '')).strip().lower()
         if requested_tier not in {'basic', 'premium'}:
             return jsonify({'error': 'Invalid subscription tier'}), 400
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            'UPDATE users SET subscription_tier = ? WHERE id = ?',
-            (requested_tier, current_user_id)
+        
+        from bson import ObjectId
+        users = get_users_collection()
+        
+        try:
+            current_user_oid = ObjectId(current_user_id)
+        except:
+            current_user_oid = current_user_id
+        
+        users.update_one(
+            {'_id': current_user_oid},
+            {'$set': {'subscription_tier': requested_tier}}
         )
-        db.commit()
-
+        
         subscription = get_user_subscription_payload(current_user_id)
         return jsonify({'success': True, 'subscription': subscription}), 200
     except Exception as e:
@@ -904,32 +896,35 @@ def get_user_profile(user_id):
     """Get user profile"""
     try:
         token = request.headers.get('Authorization')
-
+        
         token_user_id = get_user_id_from_token(token)
         if not token_user_id:
             return jsonify({'error': 'Unauthorized'}), 401
-
+        
         if token_user_id != user_id:
             return jsonify({'error': 'Cannot access other user profiles'}), 403
         
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            'SELECT id, username, email, created_at FROM users WHERE id = ?',
-            (user_id,)
-        )
-        user = cursor.fetchone()
+        from bson import ObjectId
+        users = get_users_collection()
+        
+        try:
+            object_id = ObjectId(user_id)
+        except:
+            object_id = user_id
+        
+        user = users.find_one({'_id': object_id})
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
         return jsonify({
-            'user_id': user[0],
-            'username': user[1],
-            'email': user[2],
-            'created_at': user[3]
+            'user_id': str(user['_id']),
+            'username': user['username'],
+            'email': user['email'],
+            'created_at': user.get('created_at')
         }), 200
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
         return jsonify({'error': str(e)}), 500
 
 
@@ -944,21 +939,25 @@ def update_user_profile(user_id):
             return jsonify({'error': 'Unauthorized'}), 401
         
         # Verify user is updating their own profile
-        token_user_id = int(token.split('_')[1])
-        if token_user_id != user_id:
+        token_user_id = token.split('_')[1]  # Keep as string for MongoDB
+        if token_user_id != str(user_id):
             return jsonify({'error': 'Cannot update other user profiles'}), 403
         
-        db = get_db()
-        cursor = db.cursor()
+        from bson import ObjectId
+        users = get_users_collection()
+        
+        try:
+            object_id = ObjectId(user_id)
+        except:
+            object_id = user_id
         
         # Only allow updating email
         new_email = data.get('email')
         if new_email:
-            cursor.execute(
-                'UPDATE users SET email = ? WHERE id = ?',
-                (new_email, user_id)
+            users.update_one(
+                {'_id': object_id},
+                {'$set': {'email': new_email}}
             )
-            db.commit()
         
         return jsonify({'success': True, 'message': 'Profile updated'}), 200
     except Exception as e:
@@ -974,29 +973,26 @@ def get_user_translations():
         if not token or not token.startswith('user_'):
             return jsonify({'error': 'Unauthorized'}), 401
         
-        user_id = int(token.split('_')[1])
+        user_id = token.split('_')[1]  # Keep as string for MongoDB
         
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            '''SELECT t.id, g.gesture_name, t.target_language, t.timestamp, t.source_language
-               FROM translations t
-               LEFT JOIN gestures g ON t.gesture_id = g.id
-               WHERE t.user_id = ?
-               ORDER BY t.timestamp DESC LIMIT 50''',
-            (user_id,)
-        )
-        translations = cursor.fetchall()
+        translations = get_translations_collection()
+        gestures = get_gestures_collection()
         
-        translation_list = [
-            {
-                'id': t[0],
-                'gesture': t[1] or 'Spelled Word',
-                'language': t[2],
-                'timestamp': t[3],
-                'source_language': t[4]
-            } for t in translations
-        ]
+        translation_list = []
+        for t in translations.find({'user_id': user_id}).sort('timestamp', -1).limit(50):
+            gesture_name = None
+            if t.get('gesture_id'):
+                gesture_doc = gestures.find_one({'_id': t['gesture_id']})
+                if gesture_doc:
+                    gesture_name = gesture_doc.get('gesture_name')
+            
+            translation_list.append({
+                'id': str(t.get('_id', '')),
+                'gesture': gesture_name or 'Spelled Word',
+                'language': t.get('target_language'),
+                'timestamp': t.get('timestamp'),
+                'source_language': t.get('source_language')
+            })
         
         return jsonify({'translations': translation_list}), 200
     except Exception as e:
@@ -1028,29 +1024,22 @@ def get_basic_learning_gestures():
                 'Open and close the two fingers like a beak motion.',
                 'Keep your hand centered in the frame.'
             ]
-        }
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            '''SELECT gesture_name, english_meaning, luganda_meaning, description
-               FROM gestures
-               WHERE gesture_name IN ('hello', 'thank_you', 'yes', 'no')
-               ORDER BY gesture_name'''
-        )
-        rows = cursor.fetchall()
-
+}
+        
+        gestures = get_gestures_collection()
+        rows = list(gestures.find({'gesture_name': {'$in': ['hello', 'thank_you', 'yes', 'no']}}))
+        
         lessons = [
             {
-                'gesture_name': row[0],
-                'english_meaning': row[1],
-                'luganda_meaning': row[2],
-                'description': row[3],
-                'practice_tips': tips.get(row[0], ['Practice slowly and keep your hand visible.'])
+                'gesture_name': row.get('gesture_name'),
+                'english_meaning': row.get('english_meaning'),
+                'luganda_meaning': row.get('luganda_meaning'),
+                'description': row.get('description'),
+                'practice_tips': tips.get(row.get('gesture_name'), ['Practice slowly and keep your hand visible.'])
             }
-            for row in rows
+            for row in sorted(rows, key=lambda x: x.get('gesture_name', ''))
         ]
-
+        
         return jsonify({'lessons': lessons}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

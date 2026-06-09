@@ -46,13 +46,16 @@ def get_database_path():
 
 def init_mongodb(app):
     """Initialize MongoDB with sample data."""
-    from mongodb_client import init_mongodb_indexes
-    
-    users = get_users_collection()
-    admin_users = get_admins_collection()
+    from pymongo import ASCENDING
+    from mongodb_client import init_mongodb_indexes, get_users_collection, get_admins_collection, get_gestures_collection, get_letters_collection
     
     # Create indexes
     init_mongodb_indexes()
+    
+    users = get_users_collection()
+    admin_users = get_admins_collection()
+    gestures = get_gestures_collection()
+    letters = get_letters_collection()
     
     # Create default admin if not exists
     if admin_users.count_documents({'username': 'admin'}) == 0:
@@ -63,7 +66,6 @@ def init_mongodb(app):
         })
     
     # Insert sample gestures
-    gestures = get_gestures_collection()
     sample_gestures = [
         ('hello', 'Hello', 'Wabale', 'Wave hand in greeting motion'),
         ('thank_you', 'Thank you', 'Asante', 'Hand over heart moving outward'),
@@ -84,7 +86,6 @@ def init_mongodb(app):
             })
     
     # Insert letter gestures for finger spelling (A-Z)
-    letters = get_letters_collection()
     alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     for letter in alphabet:
         if letters.count_documents({'letter': letter}) == 0:
@@ -96,182 +97,16 @@ def init_mongodb(app):
             })
 
 
-def init_sqlite(app):
-    """Initialize SQLite database with required tables."""
-    with app.app_context():
-        db = sqlite3.connect(get_database_path())
-        cursor = db.cursor()
-        
-        # Create gestures table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS gestures (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                gesture_name TEXT NOT NULL UNIQUE,
-                english_meaning TEXT NOT NULL,
-                luganda_meaning TEXT NOT NULL,
-                description TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Create translations table (for logging)
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS translations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                gesture_id INTEGER,
-                user_id INTEGER,
-                source_language TEXT,
-                target_language TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (gesture_id) REFERENCES gestures(id),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-            )
-        ''')
-        
-# Create regular users table
-         cursor.execute('''
-             CREATE TABLE IF NOT EXISTS users (
-                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 username TEXT NOT NULL UNIQUE,
-                 password TEXT NOT NULL,
-                 email TEXT NOT NULL UNIQUE,
-                 subscription_tier TEXT DEFAULT 'basic',
-                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                 last_login_at TIMESTAMP,
-                 last_logout_at TIMESTAMP,
-                 is_online INTEGER DEFAULT 0
-             )
-         ''')
-        
-        # Create admin users table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS admin_users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Create letter gestures table for finger spelling
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS letter_gestures (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                letter TEXT NOT NULL UNIQUE,
-                gesture_name TEXT NOT NULL,
-                description TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Add last_login_at columns on existing databases
-        cursor.execute("PRAGMA table_info(users)")
-        user_columns = [column[1] for column in cursor.fetchall()]
-        if 'last_login_at' not in user_columns:
-            cursor.execute('ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP')
-        if 'last_logout_at' not in user_columns:
-            cursor.execute('ALTER TABLE users ADD COLUMN last_logout_at TIMESTAMP')
-        if 'is_online' not in user_columns:
-            cursor.execute('ALTER TABLE users ADD COLUMN is_online INTEGER DEFAULT 0')
-        if 'subscription_tier' not in user_columns:
-            cursor.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'basic'")
-
-        cursor.execute("PRAGMA table_info(admin_users)")
-        admin_columns = [column[1] for column in cursor.fetchall()]
-        if 'last_login_at' not in admin_columns:
-            cursor.execute('ALTER TABLE admin_users ADD COLUMN last_login_at TIMESTAMP')
-        
-        # Insert default admin user if not exists
-        cursor.execute('SELECT COUNT(*) FROM admin_users WHERE username = ?', ('admin',))
-        if cursor.fetchone()[0] == 0:
-            cursor.execute(
-                'INSERT INTO admin_users (username, password) VALUES (?, ?)',
-                ('admin', generate_password_hash('admin123'))  # Change this in production!
-            )
-        
-        # Migrate any plain-text user passwords to hashed values
-        cursor.execute('SELECT id, password FROM users')
-        for user_id, password in cursor.fetchall():
-            if not is_password_hashed(password):
-                cursor.execute(
-                    'UPDATE users SET password = ? WHERE id = ?',
-                    (generate_password_hash(password), user_id)
-                )
-        
-        # Migrate any plain-text admin passwords to hashed values
-        cursor.execute('SELECT id, password FROM admin_users')
-        for admin_id, password in cursor.fetchall():
-            if not is_password_hashed(password):
-                cursor.execute(
-                    'UPDATE admin_users SET password = ? WHERE id = ?',
-                    (generate_password_hash(password), admin_id)
-                )
-
-        # Backfill subscription tier for existing users that predate the field.
-        cursor.execute("UPDATE users SET subscription_tier = COALESCE(NULLIF(subscription_tier, ''), 'basic')")
-
-        # Insert sample gestures
-        sample_gestures = [
-            ('hello', 'Hello', 'Wabale', 'Wave hand in greeting motion'),
-            ('thank_you', 'Thank you', 'Asante', 'Hand over heart moving outward'),
-            ('yes', 'Yes', 'Yee', 'Head nod downward'),
-            ('no', 'No', 'Nedda', 'Head shake side to side'),
-            ('good', 'Good', 'Nyo', 'Thumbs up gesture'),
-            ('bad', 'Bad', 'Bibi', 'Thumbs down gesture'),
-        ]
-        
-        for gesture_name, english, luganda, description in sample_gestures:
-            cursor.execute(
-                'SELECT COUNT(*) FROM gestures WHERE gesture_name = ?',
-                (gesture_name,)
-            )
-            if cursor.fetchone()[0] == 0:
-                cursor.execute(
-                    '''INSERT INTO gestures (gesture_name, english_meaning, luganda_meaning, description)
-                       VALUES (?, ?, ?, ?)''',
-                    (gesture_name, english, luganda, description)
-                )
-        
-        # Insert letter gestures for finger spelling (A-Z)
-        letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        for letter in letters:
-            cursor.execute(
-                'SELECT COUNT(*) FROM letter_gestures WHERE letter = ?',
-                (letter,)
-            )
-            if cursor.fetchone()[0] == 0:
-                gesture_name = f'letter_{letter.lower()}'
-                description = f'Sign for letter {letter}'
-                cursor.execute(
-                    '''INSERT INTO letter_gestures (letter, gesture_name, description)
-                       VALUES (?, ?, ?)''',
-                    (letter, gesture_name, description)
-                )
-        
-        db.commit()
-        db.close()
-
-
 def init_db(app):
     """Initialize database with required tables/collections."""
     with app.app_context():
-        if app.config.get('MONGODB_URI'):
-            init_mongodb(app)
-        else:
-            init_sqlite(app)
+        init_mongodb(app)
 
 
 def close_mongo_or_sqlite(error):
     """Close database connection."""
     try:
-        from flask import current_app
-        if current_app and current_app.config.get('MONGODB_URI'):
-            from mongodb_client import close_mongo_client
-            close_mongo_client(error)
-        else:
-            db = getattr(g, '_database', None)
-            if db is not None:
-                db.close()
-                g._database = None
+        from mongodb_client import close_mongo_client
+        close_mongo_client(error)
     except:
         pass
