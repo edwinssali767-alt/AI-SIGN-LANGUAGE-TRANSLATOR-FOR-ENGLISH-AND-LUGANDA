@@ -124,6 +124,11 @@ if (loginForm) {
         submitBtn.classList.add('loading');
 
         try {
+            const serverOk = await checkServerStatus();
+            if (!serverOk) {
+                throw new Error('Server unreachable');
+            }
+
             const response = await fetch(`${API_BASE}/user/login`, {
                 method: 'POST',
                 headers: {
@@ -132,7 +137,8 @@ if (loginForm) {
                 body: JSON.stringify({ username, password })
             });
 
-            const data = await response.json();
+            const contentType = response.headers.get('content-type') || '';
+            const data = contentType.includes('application/json') ? await response.json() : {};
 
             if (response.ok) {
                 // Store user info and token
@@ -156,9 +162,13 @@ if (loginForm) {
                 errorDiv.classList.add('show');
             }
         } catch (error) {
-            errorDiv.textContent = 'Network error. Please check your connection.';
-            errorDiv.classList.add('show');
             console.error('Login error:', error);
+            if (error.message === 'Server unreachable' || error.message.includes('Failed to fetch') || !navigator.onLine) {
+                errorDiv.textContent = `Cannot connect to server. API_BASE=${API_BASE}`;
+            } else {
+                errorDiv.textContent = 'Login failed. Please try again.';
+            }
+            errorDiv.classList.add('show');
         } finally {
             submitBtn.disabled = false;
             submitBtn.classList.remove('loading');
@@ -211,6 +221,8 @@ if (signupForm) {
         submitBtn.classList.add('loading');
 
         try {
+            console.log('API_BASE:', API_BASE);
+            console.log('Fetching:', `${API_BASE}/user/signup`);
             const serverOk = await checkServerStatus();
             if (!serverOk) {
                 throw new Error('Server unreachable');
@@ -256,8 +268,9 @@ if (signupForm) {
             }
         } catch (error) {
             console.error('Signup error:', error);
+            console.error('API_BASE at error:', API_BASE);
             if (error.message === 'Server unreachable' || error.message.includes('Failed to fetch') || !navigator.onLine) {
-                errorDiv.textContent = 'Cannot connect to server. Please ensure the backend is running.';
+                errorDiv.textContent = `Cannot connect to server. API_BASE=${API_BASE}`;
             } else {
                 errorDiv.textContent = 'Signup failed. Please try again.';
             }
