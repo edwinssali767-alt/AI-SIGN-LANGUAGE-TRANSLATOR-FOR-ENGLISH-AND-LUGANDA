@@ -25,6 +25,7 @@ app = Flask(__name__)
 CORS(app, origins=['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:5000', 'http://127.0.0.1:5000'])
 app.config.from_object(Config)
 
+FRONTEND_FOLDER = PROJECT_BACKEND_DIR.parent / 'frontend'
 VIDEO_FOLDER = app.config['LEARNING_VIDEO_FOLDER']
 os.makedirs(VIDEO_FOLDER, exist_ok=True)
 
@@ -37,6 +38,21 @@ app.teardown_appcontext(close_mongo_or_sqlite)
 # Initialize processors
 gesture_processor = GestureProcessor()
 translator = Translator()
+
+
+@app.route('/')
+def serve_frontend_index():
+    return send_from_directory(FRONTEND_FOLDER, 'index.html')
+
+
+@app.route('/<path:filename>')
+def serve_frontend_file(filename):
+    file_path = FRONTEND_FOLDER / filename
+    if file_path.is_file():
+        return send_from_directory(FRONTEND_FOLDER, filename)
+    return jsonify({'error': 'Not found'}), 404
+
+
 @app.route('/videos/<filename>')
 def serve_learning_video(filename):
     return send_from_directory(
