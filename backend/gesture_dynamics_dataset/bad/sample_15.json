@@ -1,0 +1,10 @@
+{
+  "gesture": "bad",
+  "sample_id": 15,
+  "frames": 15,
+  "resolution": [
+    640,
+    480
+  ],
+  "fps": 30
+}

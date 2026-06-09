@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing & Subscriptions - Sign Language Translator</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style2.css">
+
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-content">
+                <h1 class="logo">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</h1>
+                <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+                <ul class="nav-links">
+                    <li>
+                        <select id="themeSelector" data-theme-selector class="theme-selector"
+                            aria-label="Theme selector">
+                            <option value="system">System (Default)</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </li>
+                    <li><a href="translator.html" class="nav-link">Translator</a></li>
+                    <li><a href="letters.html" class="nav-link">Letters</a></li>
+                    <li><a href="gestures.html" class="nav-link">Learn Gestures</a></li>
+                    <li><a href="pricing.html" class="nav-link active">Pricing</a></li>
+                    <li id="authNav">
+                        <a href="welcome.html" class="nav-link">Sign In / Sign Up</a>
+                    </li>
+                    <li id="profileNav" style="display: none;">
+                        <a href="profile.html" class="nav-link">Profile</a>
+                    </li>
+                    <li id="logoutNav" style="display: none;">
+                        <a href="#" class="nav-link" onclick="logout(event)">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" class="mobile-menu">
+            <button class="close-menu" aria-label="Close menu">✕</button>
+            <a href="translator.html" class="nav-link">Translator</a>
+            <a href="letters.html" class="nav-link">Letters</a>
+            <a href="gestures.html" class="nav-link">Learn Gestures</a>
+            <a href="pricing.html" class="nav-link">Pricing</a>
+            <a href="welcome.html" class="nav-link" id="mobileAuthLink">Sign In / Sign Up</a>
+            <select id="mobileThemeSelector" class="theme-selector">
+                <option value="system">System (Default)</option>
+                <option value="light">Light Theme</option>
+                <option value="dark">Dark Theme</option>
+            </select>
+        </div>
+
+        <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+        <main class="main-content">
+            <div class="pricing-container">
+                <!-- Subscription Status -->
+                <div id="subscriptionStatus" class="subscription-status" style="display: none;">
+                    <h3>Current Subscription</h3>
+                    <p id="statusText">You are currently on the <strong>Basic Plan</strong>. Translations used:
+                        <span id="translationCount">0</span>/10
+                    </p>
+                </div>
+
+                <!-- Pricing Header -->
+                <div class="pricing-header">
+                    <h1>Simple, Transparent Pricing</h1>
+                    <p>Choose the perfect plan for your translation needs. Start free with our Basic plan or upgrade
+                        for unlimited translations.</p>
+                </div>
+
+                <!-- Pricing Cards -->
+                <div class="pricing-cards">
+                    <!-- Basic Plan -->
+                    <div class="pricing-card">
+                        <h3 class="plan-name">Basic Plan</h3>
+                        <div class="plan-price">Free</div>
+                        <p class="plan-duration">Forever free</p>
+                        <ul class="plan-features">
+                            <li>10 free translations</li>
+                            <li>Access to Letter Capture</li>
+                            <li>Browse Gesture Library</li>
+                            <li class="disabled">Unlimited translations</li>
+                            <li class="disabled">Priority support</li>
+                            <li class="disabled">Custom gestures</li>
+                        </ul>
+                        <button class="btn btn-secondary plan-button" id="basicBtn" onclick="selectPlan('basic')">
+                            Your Current Plan
+                        </button>
+                    </div>
+
+                    <!-- Premium Plan -->
+                    <div class="pricing-card featured">
+                        <h3 class="plan-name">Premium Plan</h3>
+                        <div class="plan-price">UGX 15,000<span>/month</span></div>
+                        <p class="plan-duration">Cancel anytime</p>
+                        <ul class="plan-features">
+                            <li>Unlimited translations</li>
+                            <li>Access to Letter Capture</li>
+                            <li>Browse Gesture Library</li>
+                            <li>Advanced recognition</li>
+                            <li>Priority email support</li>
+                            <li>Export translation history</li>
+                        </ul>
+                        <button class="btn plan-button" id="premiumBtn" onclick="selectPlan('premium')">
+                            Subscribe Now
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FAQ Section -->
+                <div class="faq-section">
+                    <h2>Frequently Asked Questions</h2>
+
+                    <div class="faq-item active">
+                        <h4 onclick="toggleFAQ(this)">
+                            What languages are supported?
+                            <span class="faq-icon">▼</span>
+                        </h4>
+                        <p>Currently, we support English and Luganda. More languages will be added in future updates
+                            based on user demand.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4 onclick="toggleFAQ(this)">
+                            How are translations counted?
+                            <span class="faq-icon">▼</span>
+                        </h4>
+                        <p>Each gesture or letter captured counts as one translation. Your translation count resets
+                            monthly with a Premium subscription, or you can purchase additional translation packs.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4 onclick="toggleFAQ(this)">
+                            Can I upgrade from Basic to Premium?
+                            <span class="faq-icon">▼</span>
+                        </h4>
+                        <p>Yes! You can upgrade anytime. When you upgrade, you'll immediately get access to all
+                            Premium features. Any unused translations on your Basic plan will be carried over.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4 onclick="toggleFAQ(this)">
+                            Is there a refund policy?
+                            <span class="faq-icon">▼</span>
+                        </h4>
+                        <p>We offer a 7-day money-back guarantee for new Premium subscriptions. If you're not satisfied,
+                            simply contact our support team.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4 onclick="toggleFAQ(this)">
+                            What happens after my free 10 translations?
+                            <span class="faq-icon">▼</span>
+                        </h4>
+                        <p>After using your 10 free translations, you'll be prompted to upgrade to Premium for unlimited
+                            translations, or you can purchase additional translation packs as needed.</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h4 onclick="toggleFAQ(this)">
+                            How do I contact support?
+                            <span class="faq-icon">▼</span>
+                        </h4>
+                        <p>You can reach our support team via email at support@signlanguagetranslator.com or through
+                            the contact form on our website. Premium members get priority support.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="theme.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Toggle FAQ items
+        function toggleFAQ(element) {
+            const item = element.closest('.faq-item');
+            item.classList.toggle('active');
+        }
+
+        // Load user subscription status
+        function loadSubscriptionStatus() {
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            const subscription = JSON.parse(localStorage.getItem('userSubscription')) || {
+                tier: 'basic',
+                translationsUsed: 0,
+                translationLimit: 10
+            };
+            const limitText = subscription.tier === 'premium'
+                ? 'Unlimited'
+                : (subscription.translationLimit || 10);
+
+            if (user) {
+                document.getElementById('subscriptionStatus').style.display = 'block';
+                document.getElementById('statusText').innerHTML =
+                    `You are currently on the <strong>${subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1)} Plan</strong>. Translations used: <span id="translationCount">${subscription.translationsUsed}</span>/${limitText}`;
+
+                if (subscription.tier === 'premium') {
+
+                    document.getElementById('basicBtn').textContent =
+                        'Downgrade to Basic';
+
+                    document.getElementById('basicBtn').className =
+                        'btn plan-button';
+
+                    document.getElementById('premiumBtn').textContent =
+                        'Your Current Plan';
+
+                    document.getElementById('premiumBtn').className =
+                        'btn btn-secondary plan-button';
+                }
+            } else {
+                document.getElementById('subscriptionStatus').style.display = 'none';
+            }
+        }
+
+        // Handle plan selection
+        function selectPlan(plan) {
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+
+            if (!user) {
+                alert('Please sign in or create an account to manage your subscription.');
+                window.location.href = 'welcome.html';
+                return;
+            }
+
+            const currentSubscription = JSON.parse(localStorage.getItem('userSubscription')) || {
+                tier: 'basic'
+            };
+
+            if (plan === 'basic') {
+                if (currentSubscription.tier === 'premium') {
+                    if (confirm('Are you sure you want to downgrade to the Basic plan?')) {
+                        currentSubscription.tier = 'basic';
+                        currentSubscription.translationsUsed = 0;
+                        currentSubscription.translationLimit = 10;
+                        localStorage.setItem('userSubscription', JSON.stringify(currentSubscription));
+                        loadSubscriptionStatus();
+                        alert('You have been downgraded to the Basic plan.');
+                    }
+                }
+            } else if (plan === 'premium') {
+                if (currentSubscription.tier === 'premium') {
+                    alert('You are already subscribed to the Premium plan!');
+                } else {
+                    // Simulate payment processing
+                    alert('Redirecting to payment gateway...\n\nThis is a demo. In production, you would be redirected to a payment processor (e.g., Stripe, Paypal) to process the UGX 15,000 payment.');
+
+                    // For demo purposes, simulate successful payment
+                    currentSubscription.tier = 'premium';
+                    currentSubscription.translationsUsed = 0;
+                    currentSubscription.translationLimit = 'Unlimited';
+                    localStorage.setItem('userSubscription', JSON.stringify(currentSubscription));
+                    loadSubscriptionStatus();
+                    alert('Welcome to Premium! You now have unlimited translations.');
+                }
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', loadSubscriptionStatus);
+        
+        // Mobile menu functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const closeMenuBtn = document.querySelector('.close-menu');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                });
+            }
+            
+            if (closeMenuBtn) {
+                closeMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            const mobileThemeSelector = document.getElementById('mobileThemeSelector');
+            const themeSelector = document.getElementById('themeSelector');
+            
+            if (mobileThemeSelector && themeSelector) {
+                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
+                mobileThemeSelector.addEventListener('change', function() {
+                    themeSelector.value = this.value;
+                    document.documentElement.setAttribute('data-theme', this.value);
+                    localStorage.setItem('theme', this.value);
+                });
+            }
+            
+            const mobileAuthLink = document.getElementById('mobileAuthLink');
+            const profileNav = document.getElementById('profileNav');
+            
+            if (mobileAuthLink && profileNav) {
+                if (profileNav.style.display !== 'none') {
+                    mobileAuthLink.href = 'profile.html';
+                    mobileAuthLink.textContent = 'Profile';
+                }
+            }
+            
+            document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

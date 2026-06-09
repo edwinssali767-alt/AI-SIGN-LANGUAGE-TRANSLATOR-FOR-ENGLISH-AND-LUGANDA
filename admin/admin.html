@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-content">
+                <h1 class="logo">🤘 Sign Translator</h1>
+                <ul class="nav-links">
+                    <li><a href="index.html" class="nav-link">Translator</a></li>
+                    <li><a href="gestures.html" class="nav-link">All Gestures</a></li>
+                    <li><a href="admin.html" class="nav-link active">Admin</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <section class="admin-section">
+                <!-- Login View -->
+                <div id="loginView" class="admin-view active">
+                    <div class="login-container">
+                        <h2>Admin Login</h2>
+                        <form id="loginForm" class="login-form">
+                            <div class="form-group">
+                                <label for="username">Username:</label>
+                                <input type="text" id="username" name="username" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="password">Password:</label>
+                                <input type="password" id="password" name="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </form>
+                        <div id="loginError" class="error-container hidden">
+                            <div class="error-message">
+                                <span id="loginErrorMessage"></span>
+                                <button class="btn-close">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard View -->
+                <div id="dashboardView" class="admin-view hidden">
+                    <!-- Header -->
+                    <div class="dashboard-header">
+                        <h2>Admin Dashboard</h2>
+                        <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total Gestures</h3>
+                            <p id="totalGestures" class="stat-value">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Translations</h3>
+                            <p id="totalTranslations" class="stat-value">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Gesture Management -->
+                    <div class="management-section">
+                        <h3>Gesture Management</h3>
+
+                        <!-- Add New Gesture Form -->
+                        <div class="add-gesture-form">
+                            <h4>Add New Gesture</h4>
+                            <form id="addGestureForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="gestureName">Gesture Name:</label>
+                                        <input type="text" id="gestureName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="englishMeaning">English Meaning:</label>
+                                        <input type="text" id="englishMeaning" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="lugandaMeaning">Luganda Meaning:</label>
+                                        <input type="text" id="lugandaMeaning" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="description">Description:</label>
+                                        <textarea id="description" rows="3"></textarea>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Add Gesture</button>
+                            </form>
+                        </div>
+
+                        <!-- Messages -->
+                        <div id="addGestureError" class="error-container hidden">
+                            <div class="error-message">
+                                <span id="addErrorMessage"></span>
+                                <button class="btn-close">✕</button>
+                            </div>
+                        </div>
+                        <div id="addGestureSuccess" class="success-container hidden">
+                            <div class="success-message">
+                                <span id="successMessage"></span>
+                                <button class="btn-close">✕</button>
+                            </div>
+                        </div>
+
+                        <!-- Gestures List -->
+                        <h4 style="margin-top: 2rem;">Current Gestures</h4>
+                        <div id="loadingGestures" class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading gestures...</p>
+                        </div>
+                        <div id="gesturesTable" class="gestures-table">
+                            <!-- Table will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal hidden">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h3>Edit Gesture</h3>
+            <form id="editGestureForm">
+                <div class="form-group">
+                    <label for="editGestureName">Gesture Name:</label>
+                    <input type="text" id="editGestureName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEnglishMeaning">English Meaning:</label>
+                    <input type="text" id="editEnglishMeaning" required>
+                </div>
+                <div class="form-group">
+                    <label for="editLugandaMeaning">Luganda Meaning:</label>
+                    <input type="text" id="editLugandaMeaning" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">Description:</label>
+                    <textarea id="editDescription" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+
+</html>

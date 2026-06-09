@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style2.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA
+        </div>
+
+        <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+
+        <ul class="nav-links">
+            <li>
+                <select id="themeSelector" data-theme-selector class="theme-selector" aria-label="Theme selector">
+                    <option value="system">System (Default)</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </li>
+            <li><a href="welcome.html">Home</a></li>
+            <li><a href="translator.html">Translator</a></li>
+            <li><a href="letters.html">Letters</a></li>
+            <li><a href="gestures.html">Gestures</a></li>
+            <li><a href="pricing.html">Pricing</a></li>
+            <li id="logoutNav"><a href="#" onclick="logout(event)">Logout</a></li>
+        </ul>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobileMenu" class="mobile-menu">
+        <button class="close-menu" aria-label="Close menu">✕</button>
+        <a href="welcome.html" class="nav-link">Home</a>
+        <a href="translator.html" class="nav-link">Translator</a>
+        <a href="letters.html" class="nav-link">Letters</a>
+        <a href="gestures.html" class="nav-link">Gestures</a>
+        <a href="pricing.html" class="nav-link">Pricing</a>
+        <a href="#" class="nav-link" onclick="logout(event)">Logout</a>
+        <select id="mobileThemeSelector" class="theme-selector">
+            <option value="system">System (Default)</option>
+            <option value="light">Light Theme</option>
+            <option value="dark">Dark Theme</option>
+        </select>
+    </div>
+
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+    <div class="profile-container">
+        <aside class="profile-sidebar">
+            <div class="profile-avatar">
+                <div class="avatar-circle">@</div>
+                <h2 id="profileUsername">Loading...</h2>
+                <p id="profileEmail" class="profile-email">Loading...</p>
+            </div>
+
+            <div class="sidebar-nav">
+                <button type="button" class="sidebar-item active" data-section="overview">
+                    <span class="icon">Overview</span>
+                </button>
+                <button type="button" class="sidebar-item" data-section="history">
+                    <span class="icon">History</span>
+                </button>
+                <button type="button" class="sidebar-item" data-section="settings">
+                    <span class="icon">Settings</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="profile-main">
+            <section class="profile-section active" id="overviewSection">
+                <h3>Account Overview</h3>
+
+                <div class="info-cards">
+                    <div class="info-card">
+                        <div class="card-icon">OK</div>
+                        <div class="card-content">
+                            <p class="card-label">Account Status</p>
+                            <p class="card-value">Active</p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="card-icon">Date</div>
+                        <div class="card-content">
+                            <p class="card-label">Member Since</p>
+                            <p id="memberSince" class="card-value">Loading...</p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="card-icon">Plan</div>
+                        <div class="card-content">
+                            <p class="card-label">Account Type</p>
+                            <p id="accountType" class="card-value">Basic User</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section-box">
+                    <h4>Quick Actions</h4>
+                    <div class="action-buttons">
+                        <a href="translator.html" class="btn">Go to Translator</a>
+                        <a href="gestures.html" class="btn btn-secondary">View Gestures</a>
+                    </div>
+                </div>
+            </section>
+
+            <section class="profile-section" id="historySection">
+                <h3>Translation History</h3>
+                <div id="historyContainer" class="history-container">
+                    <p class="loading">Loading translation history...</p>
+                </div>
+            </section>
+
+            <section class="profile-section" id="settingsSection">
+                <h3>Account Settings</h3>
+
+                <div class="settings-group">
+                    <h4>Update Email</h4>
+                    <form id="emailUpdateForm">
+                        <div class="form-group">
+                            <label for="currentEmail">Current Email</label>
+                            <input type="email" id="currentEmail" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="newEmail">New Email</label>
+                            <input type="email" id="newEmail" placeholder="Enter new email" required>
+                        </div>
+
+                        <button type="submit" class="btn">Update Email</button>
+                        <div id="emailError" class="alert alert-danger hidden"></div>
+                        <div id="emailSuccess" class="alert alert-success hidden"></div>
+                    </form>
+                </div>
+
+                <div class="settings-group danger-zone">
+                    <h4>Danger Zone</h4>
+                    <p class="warning-text">These actions cannot be undone.</p>
+                    <button type="button" id="deleteAccountBtn" class="btn btn-danger">Delete Account</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="deleteModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Delete Account?</h3>
+            <p>This action cannot be undone. All your data will be permanently deleted.</p>
+
+            <div class="modal-actions">
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete Permanently</button>
+                <button type="button" id="cancelDeleteBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="theme.js"></script>
+    <script src="auth.js"></script>
+    <script src="profile.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const closeMenuBtn = document.querySelector('.close-menu');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                });
+            }
+            
+            if (closeMenuBtn) {
+                closeMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            const mobileThemeSelector = document.getElementById('mobileThemeSelector');
+            const themeSelector = document.getElementById('themeSelector');
+            
+            if (mobileThemeSelector && themeSelector) {
+                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
+                mobileThemeSelector.addEventListener('change', function() {
+                    themeSelector.value = this.value;
+                    document.documentElement.setAttribute('data-theme', this.value);
+                    localStorage.setItem('theme', this.value);
+                });
+            }
+            
+            document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

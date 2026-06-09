@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <title>AI Sign Language Translator | Welcome</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style2.css">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+
+        <div class="logo">
+            AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA
+        </div>
+
+        <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+
+        <ul class="nav-links">
+
+            <li>
+                <select id="themeSelector" class="theme-selector">
+                    <option value="system">System (Default)</option>
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                </select>
+            </li>
+
+            <li><a href="welcome.html" class="active">Home</a></li>
+            <li><a href="translator.html">Translator</a></li>
+            <li><a href="letters.html">Letters</a></li>
+            <li><a href="gestures.html">Gestures</a></li>
+            <li><a href="pricing.html">Pricing</a></li>
+            <li><a href="auth.html?mode=signin">Sign In</a></li>
+
+        </ul>
+
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobileMenu" class="mobile-menu">
+        <button class="close-menu" aria-label="Close menu">✕</button>
+        <a href="welcome.html" class="nav-link">Home</a>
+        <a href="translator.html" class="nav-link">Translator</a>
+        <a href="letters.html" class="nav-link">Letters</a>
+        <a href="gestures.html" class="nav-link">Gestures</a>
+        <a href="pricing.html" class="nav-link">Pricing</a>
+        <a href="auth.html?mode=signin" class="nav-link">Sign In</a>
+        <select id="mobileThemeSelector" class="theme-selector">
+            <option value="system">System (Default)</option>
+            <option value="light">Light Theme</option>
+            <option value="dark">Dark Theme</option>
+        </select>
+    </div>
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+    <!-- Hero Section -->
+    <section class="container section">
+
+        <div class="card text-center">
+
+            <p class="section-tag">
+                Welcome to the Future of Communication
+            </p>
+
+            <h1>
+                AI Sign Language Translator for English and Luganda
+            </h1>
+
+            <p>
+                Break communication barriers using Artificial Intelligence.
+                Translate sign language, learn gestures, and improve accessibility
+                for everyone.
+            </p>
+
+            <div class="mt-2">
+
+                <a href="auth.html?mode=signin" class="btn">
+                    Sign In
+                </a>
+
+                <a href="auth.html?mode=signup" class="btn btn-secondary">
+                    Create Account
+                </a>
+
+                <a href="translator.html" class="btn btn-success">
+                    Continue as Guest
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Features Section -->
+    <section class="container section">
+
+        <h2 class="text-center">
+            What You Can Do
+        </h2>
+
+        <div class="grid grid-2">
+
+            <div class="card">
+                <h3>Translate Sign Language</h3>
+                <p>
+                    Use your camera or upload gestures and receive translations
+                    in English and Luganda.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Learn Sign Language</h3>
+                <p>
+                    Explore letters, words and common gestures through guided
+                    learning modules.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Save Translation History</h3>
+                <p>
+                    Registered users can store translations and review previous
+                    activity anytime.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Accessible Communication</h3>
+                <p>
+                    Support inclusive communication between hearing and
+                    non-hearing communities.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Tutorial Section -->
+    <section class="container section">
+
+        <div class="card">
+
+            <h2 class="text-center">
+                Getting Started
+            </h2>
+
+            <p class="text-center">
+                Watch a tutorial video to learn how to use the system.
+            </p>
+
+            <div class="tutorial-placeholder">
+
+                <h3>Tutorial Video Area</h3>
+
+                <p>
+                    Embed your YouTube tutorial or training video here.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Subscription Plans -->
+    <section class="container section">
+
+        <h2 class="text-center">
+            Choose Your Plan
+        </h2>
+
+        <div class="grid grid-2">
+
+            <div class="card">
+
+                <h3>Basic Plan</h3>
+
+                <ul>
+                    <li>10 Free Translations</li>
+                    <li>Access to Learning Materials</li>
+                    <li>Translation History</li>
+                </ul>
+
+            </div>
+
+            <div class="card">
+
+                <h3>Premium Plan</h3>
+
+                <ul>
+                    <li>Unlimited Translations</li>
+                    <li>Priority Support</li>
+                    <li>Advanced Learning Content</li>
+                    <li>Future AI Features</li>
+                </ul>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+
+        <p>
+            © 2026 AI Sign Language Translator for English and Luganda
+        </p>
+
+    </footer>
+
+    <script src="theme.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const closeMenuBtn = document.querySelector('.close-menu');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                });
+            }
+            
+            if (closeMenuBtn) {
+                closeMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            const mobileThemeSelector = document.getElementById('mobileThemeSelector');
+            const themeSelector = document.getElementById('themeSelector');
+            
+            if (mobileThemeSelector && themeSelector) {
+                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
+                mobileThemeSelector.addEventListener('change', function() {
+                    themeSelector.value = this.value;
+                    document.documentElement.setAttribute('data-theme', this.value);
+                    localStorage.setItem('theme', this.value);
+                });
+            }
+            
+            document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

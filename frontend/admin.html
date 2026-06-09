@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA | Admin Dashboard</title>
+
+    <!-- Main Global Stylesheet -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style2.css">
+</head>
+
+<body>
+
+<!-- Navigation -->
+    <nav class="navbar">
+
+        <div class="logo">
+            AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA
+        </div>
+
+        <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+
+        <ul class="nav-links">
+
+            <li>
+<select id="themeSelector" data-theme-selector class="theme-selector">
+                    <option value="system">System (Default)</option>
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                </select>
+            </li>
+
+            <li>
+                <a href="translator.html">Translator</a>
+            </li>
+
+            <li>
+                <a href="gestures.html">Learn Gestures</a>
+            </li>
+
+            <li>
+                <a href="pricing.html">Pricing</a>
+            </li>
+
+            <li id="logoutNav" style="display:none;">
+                <a href="#" onclick="logout(event)">Logout</a>
+            </li>
+            <li>
+                <a href="#learningVideos">
+                    Tutorial Videos
+                </a>
+            </li>
+
+        </ul>
+
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobileMenu" class="mobile-menu">
+        <button class="close-menu" aria-label="Close menu">✕</button>
+        <a href="translator.html" class="nav-link">Translator</a>
+        <a href="gestures.html" class="nav-link">Learn Gestures</a>
+        <a href="pricing.html" class="nav-link">Pricing</a>
+        <a href="#learningVideos" class="nav-link">Tutorial Videos</a>
+        <a href="#" class="nav-link" id="mobileLogoutLink" style="display:none;" onclick="logout(event)">Logout</a>
+<select id="mobileThemeSelector" class="theme-selector">
+            <option value="system">System (Default)</option>
+            <option value="light">Light Theme</option>
+            <option value="dark">Dark Theme</option>
+        </select>
+    </div>
+
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <!-- Login Section -->
+        <section id="loginView" class="card">
+
+            <h2 class="section-title">
+                Admin Login
+            </h2>
+
+            <form id="loginForm">
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <button type="submit" class="btn">
+                    Login
+                </button>
+
+            </form>
+
+            <div id="loginError" class="alert alert-danger hidden">
+                <span id="loginErrorMessage"></span>
+                <button type="button" class="btn-close">x</button>
+            </div>
+
+            <div class="demo-info">
+
+                <strong>Demo Credentials</strong>
+
+                <p>
+                    Username: admin
+                </p>
+
+                <p>
+                    Password: admin123
+                </p>
+
+            </div>
+
+        </section>
+
+        <!-- Dashboard -->
+        <section id="dashboardView" class="hidden">
+
+            <div class="page-header">
+
+                <h2>
+                    Admin Dashboard
+                </h2>
+
+                <button id="logoutBtn" class="btn btn-secondary">
+                    Logout
+                </button>
+
+            </div>
+
+            <!-- Statistics -->
+            <div class="grid grid-4">
+
+                <div class="card">
+                    <h3>Total Gestures</h3>
+                    <p id="totalGestures" class="stat-value">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total Translations</h3>
+                    <p id="totalTranslations" class="stat-value">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total Users</h3>
+                    <p id="totalUsers" class="stat-value">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Users Logged In</h3>
+                    <p id="loggedInUsers" class="stat-value">0</p>
+                </div>
+
+            </div>
+
+            <!-- User Management -->
+            <section class="card">
+
+                <h3>User Management</h3>
+
+                <p>
+                    View users, remove accounts and reset passwords.
+                </p>
+
+                <div id="usersTable"></div>
+
+            </section>
+
+            <!-- Gesture Management -->
+            <section class="card">
+
+                <h3>Gesture Management</h3>
+
+                <form id="addGestureForm">
+
+                    <div class="grid grid-2">
+
+                        <div class="form-group">
+                            <label>Gesture Name</label>
+                            <input type="text" id="gestureName" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>English Meaning</label>
+                            <input type="text" id="englishMeaning" required>
+                        </div>
+
+                    </div>
+
+                    <div class="grid grid-2">
+
+                        <div class="form-group">
+                            <label>Luganda Meaning</label>
+                            <input type="text" id="lugandaMeaning" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="description" rows="3"></textarea>
+                        </div>
+
+                    </div>
+
+                    <button type="submit" class="btn">
+                        Add Gesture
+                    </button>
+
+                </form>
+
+                <div id="addGestureError" class="alert alert-danger hidden">
+                    <span id="addErrorMessage"></span>
+                    <button type="button" class="btn-close">x</button>
+                </div>
+
+                <div id="addGestureSuccess" class="alert alert-success hidden">
+                    <span id="successMessage"></span>
+                    <button type="button" class="btn-close">x</button>
+                </div>
+
+                <h3 class="mt-3">
+                    Current Gestures
+                </h3>
+
+                <div id="loadingGestures" class="loading">
+                    Loading gestures...
+                </div>
+
+                <div id="gesturesTable"></div>
+
+            </section>
+
+            <!-- Model Training Section -->
+            <section class="card" id="modelTraining">
+
+                <h3>Model Training</h3>
+
+                <p>Capture gesture images to train the ML model.</p>
+
+                <div class="grid grid-2">
+
+                    <div class="form-group">
+
+                        <label for="trainingGestureName">Gesture Name</label>
+
+                        <input type="text" id="trainingGestureName" placeholder="e.g., hello" required>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="trainingGestureLabel">Label (auto-generated)</label>
+
+                        <input type="text" id="trainingGestureLabel" placeholder="Auto from name" readonly>
+
+                    </div>
+
+                </div>
+
+                <div class="camera-section">
+
+                    <video id="trainingCameraFeed" class="camera-feed" autoplay playsinline style="max-width: 100%; border-radius: 8px;"></video>
+
+                    <canvas id="trainingCanvas" style="display:none;"></canvas>
+
+                </div>
+
+                <div class="controls mt-2">
+
+                    <button type="button" id="startTrainingCameraBtn" class="btn btn-primary">Start Camera</button>
+
+                    <button type="button" id="captureTrainingFrameBtn" class="btn btn-secondary" disabled>Capture Frame</button>
+
+                    <button type="button" id="stopTrainingCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
+
+                    <button type="button" id="trainModelBtn" class="btn btn-success" disabled>Train Model</button>
+
+                </div>
+
+                <div class="mt-2">
+
+                    <p>Captured frames: <span id="capturedFramesCount">0</span></p>
+
+                    <div id="trainingPreview" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+
+                </div>
+
+                <div id="trainingError" class="alert alert-danger hidden"></div>
+
+                <div id="trainingSuccess" class="alert alert-success hidden"></div>
+
+            </section>
+
+        </section>
+
+    </main>
+    <div id="editModal" class="modal hidden">
+
+        <div class="modal-content">
+
+            <span class="modal-close">
+                &times;
+            </span>
+
+            <h3>Edit Gesture</h3>
+
+            <form id="editGestureForm">
+
+                <div class="form-group">
+                    <label>Gesture Name</label>
+                    <input type="text" id="editGestureName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>English Meaning</label>
+                    <input type="text" id="editEnglishMeaning" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Luganda Meaning</label>
+                    <input type="text" id="editLugandaMeaning" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editDescription" rows="3"></textarea>
+                </div>
+
+                <button type="submit" class="btn">
+                    Save Changes
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <!-- Password Modal -->
+    <div id="passwordModal" class="modal hidden">
+
+        <div class="modal-content">
+
+            <span class="modal-close" id="passwordModalClose">
+                &times;
+            </span>
+
+            <h3>Change Password</h3>
+
+            <form id="changePasswordForm">
+
+                <input type="hidden" id="passwordUserId">
+
+                <div class="form-group">
+
+                    <label>New Password</label>
+
+                    <input type="password" id="newUserPassword" minlength="6" required>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>Confirm Password</label>
+
+                    <input type="password" id="confirmUserPassword" minlength="6" required>
+
+                </div>
+
+                <button type="submit" class="btn">
+                    Update Password
+                </button>
+
+            </form>
+
+    </div>
+
+    </div>
+
+    <!-- Learning Videos -->
+    <section class="card" id="learningVideos">
+
+        <h3>Learning Videos</h3>
+
+        <form id="addVideoForm">
+
+            <div class="form-group">
+                <label>Video Title</label>
+                <input type="text" id="videoTitle" required>
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="videoDescription"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Access Level</label>
+
+                <select id="videoAccess">
+
+                    <option value="free">
+                        Free
+                    </option>
+
+                    <option value="premium">
+                        Premium
+                    </option>
+
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Video File</label>
+                <input type="file" id="videoFile" accept="video/*">
+            </div>
+
+            <button type="submit" class="btn">
+                Upload Video
+            </button>
+
+        </form>
+
+    </section>
+
+    <script src="theme.js"></script>
+    <script src="admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const closeMenuBtn = document.querySelector('.close-menu');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            const mobileThemeSelector = document.getElementById('mobileThemeSelector');
+            const themeSelector = document.getElementById('themeSelector');
+            
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                });
+            }
+            
+            if (closeMenuBtn) {
+                closeMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            if (mobileThemeSelector && themeSelector) {
+                mobileThemeSelector.value = localStorage.getItem('site_theme') || 'system';
+                mobileThemeSelector.addEventListener('change', function() {
+                    themeSelector.value = this.value;
+                    document.documentElement.setAttribute('data-theme', this.value);
+                    localStorage.setItem('site_theme', this.value);
+                });
+            }
+            
+            document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            });
+
+            // Update mobile logout link visibility
+            const logoutNav = document.getElementById('logoutNav');
+            const mobileLogoutLink = document.getElementById('mobileLogoutLink');
+            if (mobileLogoutLink && logoutNav) {
+                mobileLogoutLink.style.display = logoutNav.style.display === 'none' ? 'none' : 'block';
+            }
+        });
+    </script>
+
+</body>
+
+</html>

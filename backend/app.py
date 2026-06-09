@@ -1,0 +1,1056 @@
+"""
+Sign Language Translator - Backend Server
+Main Flask application file
+"""
+
+from flask import Flask, request, jsonify, g, send_from_directory
+from flask_cors import CORS
+from dotenv import load_dotenv
+from config import Config, PROJECT_BACKEND_DIR
+from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
+from gesture_processor import GestureProcessor
+from translator import Translator
+import os
+import smtplib
+import base64
+from email.message import EmailMessage
+from pathlib import Path
+from werkzeug.security import check_password_hash, generate_password_hash
+
+# Load environment variables from .env file
+load_dotenv()
+
+
+app = Flask(__name__)
+CORS(app, origins=['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:5000', 'http://127.0.0.1:5000'])
+app.config.from_object(Config)
+
+VIDEO_FOLDER = app.config['LEARNING_VIDEO_FOLDER']
+os.makedirs(VIDEO_FOLDER, exist_ok=True)
+
+# Initialize database
+init_db(app)
+
+# Register teardown handler
+app.teardown_appcontext(close_mongo_or_sqlite)
+
+# Initialize processors
+gesture_processor = GestureProcessor()
+translator = Translator()
+@app.route('/videos/<filename>')
+def serve_learning_video(filename):
+    return send_from_directory(
+        VIDEO_FOLDER,
+        filename
+    )
+
+
+def is_password_hashed(password):
+    """Check whether a stored password appears to be hashed by Werkzeug."""
+    if not password:
+        return False
+    return password.startswith('pbkdf2:') or password.startswith('scrypt:')
+
+
+def verify_password(stored_password, raw_password):
+    """Verify password while supporting legacy plain-text values for migration."""
+    if not stored_password:
+        return False
+    if is_password_hashed(stored_password):
+        return check_password_hash(stored_password, raw_password)
+    return stored_password == raw_password
+
+
+def is_valid_admin_token(token):
+    """Validate simple admin token format."""
+    return bool(token and token.startswith('admin_'))
+
+
+def get_user_id_from_token(token):
+    """Extract user id from user token, returning None when invalid."""
+    if not token or not token.startswith('user_'):
+        return None
+    try:
+        return int(token.split('_')[1])
+    except (IndexError, ValueError):
+        return None
+
+
+def log_translation(detected_gesture, target_language, user_id=None):
+    """Persist translation event for history and analytics."""
+    db = get_db()
+    cursor = db.cursor()
+
+    cursor.execute('SELECT id FROM gestures WHERE gesture_name = ?', (detected_gesture,))
+    gesture_row = cursor.fetchone()
+    if not gesture_row:
+        return
+
+    cursor.execute(
+        '''INSERT INTO translations (gesture_id, user_id, source_language, target_language, timestamp)
+           VALUES (?, ?, ?, ?, ?)''',
+        (gesture_row[0], user_id, 'gesture', target_language, get_nairobi_time())
+    )
+    db.commit()
+
+
+def send_welcome_login_email(recipient_email, username):
+    """Send a welcome-back email after successful login if SMTP is configured."""
+    if not app.config.get('SEND_LOGIN_WELCOME_EMAIL', True):
+        return {'sent': False, 'reason': 'disabled'}
+
+    smtp_host = app.config.get('SMTP_HOST')
+    smtp_username = app.config.get('SMTP_USERNAME')
+    smtp_password = app.config.get('SMTP_PASSWORD')
+    smtp_port = app.config.get('SMTP_PORT', 587)
+    email_from = app.config.get('EMAIL_FROM')
+
+    # Allow running without mail credentials while keeping login successful.
+    if not smtp_host or not smtp_username or not smtp_password or not email_from:
+        return {'sent': False, 'reason': 'smtp_not_configured'}
+
+    message = EmailMessage()
+    message['Subject'] = 'Welcome to Sign Language Translator'
+    message['From'] = email_from
+    message['To'] = recipient_email
+    message.set_content(
+        f"Hello {username},\n\n"
+        "Welcome to the Sign Language Translator website. "
+        "We are happy to have you back.\n\n"
+        "You can continue translating gestures and managing your profile anytime.\n\n"
+        "Best regards,\n"
+        "Sign Language Translator Team"
+    )
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as smtp:
+        if app.config.get('SMTP_USE_TLS', True):
+            smtp.starttls()
+        smtp.login(smtp_username, smtp_password)
+        smtp.send_message(message)
+
+    return {'sent': True}
+
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({'status': 'ok', 'message': 'Backend is running'}), 200
+
+
+@app.route('/api/translate', methods=['POST'])
+def translate_gesture():
+    """
+    Process gesture image and return translation
+    Expected: gesture_image (base64 or file)
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        token = request.headers.get('Authorization')
+        user_id = get_user_id_from_token(token)
+        gesture_data = data.get('gesture_image')
+        target_language = data.get('target_language', 'english')
+        
+        if not gesture_data:
+            return jsonify({'error': 'No gesture image provided'}), 400
+        
+        # Process gesture
+        detected_gesture = gesture_processor.process_gesture(gesture_data)
+        
+        if not detected_gesture:
+            return jsonify({'error': 'Could not detect gesture. Please try again.'}), 400
+        
+        # Get translation
+        translation = translator.translate(detected_gesture, target_language)
+        log_translation(detected_gesture, target_language, user_id)
+        
+        return jsonify({
+            'gesture': detected_gesture,
+            'translation': translation,
+            'language': target_language
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/translate-motion', methods=['POST'])
+def translate_gesture_motion():
+    """
+    Process gesture MOTION (multiple frames) and return translation
+    Expected: gesture_frames (list of base64 images)
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        token = request.headers.get('Authorization')
+        user_id = get_user_id_from_token(token)
+        gesture_frames = data.get('gesture_frames', [])
+        target_language = data.get('target_language', 'english')
+        
+        if not gesture_frames or len(gesture_frames) == 0:
+            return jsonify({'error': 'No gesture frames provided'}), 400
+        
+        # Process each frame to build motion history
+        print(f"Processing {len(gesture_frames)} frames for motion analysis...")
+        
+        detected_gesture = None
+        
+        # Send frames to gesture processor
+        for i, frame_data in enumerate(gesture_frames):
+            # Add frame to buffer
+            frame_count = gesture_processor.add_frame(frame_data)
+            
+            # Check if we have enough frames for prediction
+            if gesture_processor.has_enough_frames():
+                detected_gesture = gesture_processor.predict_motion_gesture()
+                if detected_gesture:
+                    print(f"Gesture recognized after frame {i+1}: {detected_gesture}")
+                    break
+        
+        if not detected_gesture:
+            if gesture_frames:
+                midpoint_index = len(gesture_frames) // 2
+                detected_gesture = gesture_processor.predict_static_gesture(gesture_frames[midpoint_index])
+
+        if not detected_gesture:
+            return jsonify({'error': 'Could not recognize gesture from motion. Please try again.'}), 400
+        
+        # Get translation
+        translation = translator.translate(detected_gesture, target_language)
+        log_translation(detected_gesture, target_language, user_id)
+        
+        return jsonify({
+            'gesture': detected_gesture,
+            'translation': translation,
+            'language': target_language,
+            'frames_processed': len(gesture_frames)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in translate_gesture_motion: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/gestures', methods=['GET'])
+def get_gestures():
+    """Get all available gestures"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT id, gesture_name, english_meaning, luganda_meaning FROM gestures')
+        gestures = cursor.fetchall()
+        
+        gesture_list = [
+            {
+                'id': g[0],
+                'gesture_name': g[1],
+                'english_meaning': g[2],
+                'luganda_meaning': g[3]
+            } for g in gestures
+        ]
+        
+        return jsonify({'gestures': gesture_list}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/gestures/<int:gesture_id>', methods=['GET'])
+def get_gesture(gesture_id):
+    """Get specific gesture details"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            'SELECT id, gesture_name, english_meaning, luganda_meaning, description FROM gestures WHERE id = ?',
+            (gesture_id,)
+        )
+        gesture = cursor.fetchone()
+        
+        if not gesture:
+            return jsonify({'error': 'Gesture not found'}), 404
+        
+        return jsonify({
+            'id': gesture[0],
+            'gesture_name': gesture[1],
+            'english_meaning': gesture[2],
+            'luganda_meaning': gesture[3],
+            'description': gesture[4]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============ ADMIN ENDPOINTS ============
+
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    """Admin login endpoint"""
+    try:
+        data = request.get_json(silent=True) or {}
+        username = data.get('username')
+        password = data.get('password')
+        
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            'SELECT id, username, password FROM admin_users WHERE username = ?',
+            (username,)
+        )
+        user = cursor.fetchone()
+        
+        if not user or not verify_password(user[2], password):
+            return jsonify({'error': 'Invalid credentials'}), 401
+
+        cursor.execute(
+            'UPDATE admin_users SET last_login_at = ? WHERE id = ?',
+            (get_nairobi_time(), user[0])
+        )
+        db.commit()
+        
+        return jsonify({
+            'success': True,
+            'admin_id': user[0],
+            'username': user[1],
+            'token': f"admin_{user[0]}"
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/gestures', methods=['POST'])
+def admin_add_gesture():
+    """Add new gesture (Admin only)"""
+    try:
+        data = request.get_json(silent=True) or {}
+        token = request.headers.get('Authorization')
+        
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        gesture_name = data.get('gesture_name')
+        english_meaning = data.get('english_meaning')
+        luganda_meaning = data.get('luganda_meaning')
+        description = data.get('description', '')
+        
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            '''INSERT INTO gestures (gesture_name, english_meaning, luganda_meaning, description, created_at)
+               VALUES (?, ?, ?, ?, ?)''',
+            (gesture_name, english_meaning, luganda_meaning, description, get_nairobi_time())
+        )
+        db.commit()
+        
+        return jsonify({'success': True, 'gesture_id': cursor.lastrowid}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/gestures/<int:gesture_id>', methods=['PUT'])
+def admin_update_gesture(gesture_id):
+    """Update gesture (Admin only)"""
+    try:
+        data = request.get_json(silent=True) or {}
+        token = request.headers.get('Authorization')
+        
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        db = get_db()
+        cursor = db.cursor()
+        
+        cursor.execute(
+            '''UPDATE gestures 
+               SET gesture_name = ?, english_meaning = ?, luganda_meaning = ?, description = ?
+               WHERE id = ?''',
+            (data.get('gesture_name'), data.get('english_meaning'), 
+             data.get('luganda_meaning'), data.get('description', ''), gesture_id)
+        )
+        db.commit()
+        
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/gestures/<int:gesture_id>', methods=['DELETE'])
+def admin_delete_gesture(gesture_id):
+    """Delete gesture (Admin only)"""
+    try:
+        token = request.headers.get('Authorization')
+        
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('DELETE FROM gestures WHERE id = ?', (gesture_id,))
+        db.commit()
+        
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/stats', methods=['GET'])
+def admin_stats():
+    """Get admin statistics"""
+    try:
+        token = request.headers.get('Authorization')
+        
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        db = get_db()
+        cursor = db.cursor()
+        
+        cursor.execute('SELECT COUNT(*) FROM gestures')
+        total_gestures = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM translations')
+        total_translations = cursor.fetchone()[0]
+
+        cursor.execute('SELECT COUNT(*) FROM users')
+        total_users = cursor.fetchone()[0]
+
+        cursor.execute('SELECT COUNT(*) FROM users WHERE is_online = 1')
+        logged_in_users = cursor.fetchone()[0]
+        
+        return jsonify({
+            'total_gestures': total_gestures,
+            'total_translations': total_translations,
+            'total_users': total_users,
+            'logged_in_users': logged_in_users
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/users', methods=['GET'])
+def admin_get_users():
+    """Get users for admin panel."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            '''SELECT id, username, email, created_at, last_login_at, last_logout_at, is_online
+               FROM users
+               ORDER BY created_at DESC'''
+        )
+        users = cursor.fetchall()
+
+        return jsonify({
+            'users': [
+                {
+                    'id': user[0],
+                    'username': user[1],
+                    'email': user[2],
+                    'created_at': user[3],
+                    'last_login_at': user[4],
+                    'last_logout_at': user[5],
+                    'is_online': bool(user[6]),
+                    'has_logged_in': user[4] is not None
+                } for user in users
+            ]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+def admin_delete_user(user_id):
+    """Delete a user from admin panel."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        db = get_db()
+        cursor = db.cursor()
+
+        cursor.execute('SELECT id FROM users WHERE id = ?', (user_id,))
+        if not cursor.fetchone():
+            return jsonify({'error': 'User not found'}), 404
+
+        cursor.execute('DELETE FROM translations WHERE user_id = ?', (user_id,))
+        cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        db.commit()
+
+        return jsonify({'success': True, 'message': 'User deleted'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/users/<int:user_id>/password', methods=['PUT'])
+def admin_change_user_password(user_id):
+    """Change a user's password from admin panel."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        data = request.get_json() or {}
+        new_password = data.get('new_password', '')
+        if len(new_password) < 6:
+            return jsonify({'error': 'Password must be at least 6 characters'}), 400
+
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT id FROM users WHERE id = ?', (user_id,))
+        if not cursor.fetchone():
+            return jsonify({'error': 'User not found'}), 404
+
+        cursor.execute(
+            'UPDATE users SET password = ? WHERE id = ?',
+            (generate_password_hash(new_password), user_id)
+        )
+        db.commit()
+
+        return jsonify({'success': True, 'message': 'Password updated'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+# ============ USER AUTHENTICATION ENDPOINTS ============
+
+@app.route('/api/user/signup', methods=['POST'])
+def user_signup():
+    """Register new user account"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not username or not email or not password:
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        if len(username) < 3:
+            return jsonify({'error': 'Username must be at least 3 characters'}), 400
+        if len(password) < 6:
+            return jsonify({'error': 'Password must be at least 6 characters'}), 400
+        
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Check if user already exists
+        cursor.execute('SELECT id FROM users WHERE username = ? OR email = ?', (username, email))
+        if cursor.fetchone():
+            return jsonify({'error': 'Username or email already exists'}), 409
+        
+        # Create new user
+        cursor.execute(
+            '''INSERT INTO users (username, email, password, created_at, last_login_at, is_online)
+               VALUES (?, ?, ?, ?, ?, ?)''',
+            (username, email, generate_password_hash(password), get_nairobi_time(), get_nairobi_time(), 1)
+        )
+        db.commit()
+        
+        return jsonify({
+            'success': True,
+            'user_id': cursor.lastrowid,
+            'username': username,
+            'message': 'Account created successfully'
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/login', methods=['POST'])
+def user_login():
+    """User login endpoint"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Missing username or password'}), 400
+        
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            'SELECT id, username, email, password FROM users WHERE username = ?',
+            (username,)
+        )
+        user = cursor.fetchone()
+        
+        if not user or not verify_password(user[3], password):
+            return jsonify({'error': 'Invalid credentials'}), 401
+
+        cursor.execute(
+            'UPDATE users SET last_login_at = ?, is_online = 1 WHERE id = ?',
+            (get_nairobi_time(), user[0])
+        )
+        db.commit()
+
+        email_info = {'sent': False, 'reason': 'not_attempted'}
+        try:
+            email_info = send_welcome_login_email(user[2], user[1])
+        except Exception as email_error:
+            email_info = {'sent': False, 'reason': str(email_error)}
+        
+        return jsonify({
+            'success': True,
+            'user_id': user[0],
+            'username': user[1],
+            'email': user[2],
+            'token': f"user_{user[0]}",
+            'welcome_email': email_info
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/logout', methods=['POST'])
+def user_logout():
+    """Update user logout state so admin can see current status."""
+    try:
+        token = request.headers.get('Authorization')
+        user_id = get_user_id_from_token(token)
+
+        if not user_id:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            'UPDATE users SET is_online = 0, last_logout_at = ? WHERE id = ?',
+            (get_nairobi_time(), user_id)
+        )
+        db.commit()
+
+        return jsonify({'success': True, 'message': 'Logged out'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/profile/<int:user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    """Get user profile"""
+    try:
+        token = request.headers.get('Authorization')
+
+        token_user_id = get_user_id_from_token(token)
+        if not token_user_id:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        if token_user_id != user_id:
+            return jsonify({'error': 'Cannot access other user profiles'}), 403
+        
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            'SELECT id, username, email, created_at FROM users WHERE id = ?',
+            (user_id,)
+        )
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'user_id': user[0],
+            'username': user[1],
+            'email': user[2],
+            'created_at': user[3]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/profile/<int:user_id>', methods=['PUT'])
+def update_user_profile(user_id):
+    """Update user profile"""
+    try:
+        token = request.headers.get('Authorization')
+        data = request.get_json(silent=True) or {}
+        
+        if not token or not token.startswith('user_'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        # Verify user is updating their own profile
+        token_user_id = int(token.split('_')[1])
+        if token_user_id != user_id:
+            return jsonify({'error': 'Cannot update other user profiles'}), 403
+        
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Only allow updating email
+        new_email = data.get('email')
+        if new_email:
+            cursor.execute(
+                'UPDATE users SET email = ? WHERE id = ?',
+                (new_email, user_id)
+            )
+            db.commit()
+        
+        return jsonify({'success': True, 'message': 'Profile updated'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/translations', methods=['GET'])
+def get_user_translations():
+    """Get user's translation history"""
+    try:
+        token = request.headers.get('Authorization')
+        
+        if not token or not token.startswith('user_'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        user_id = int(token.split('_')[1])
+        
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            '''SELECT t.id, g.gesture_name, t.target_language, t.timestamp, t.source_language
+               FROM translations t
+               LEFT JOIN gestures g ON t.gesture_id = g.id
+               WHERE t.user_id = ?
+               ORDER BY t.timestamp DESC LIMIT 50''',
+            (user_id,)
+        )
+        translations = cursor.fetchall()
+        
+        translation_list = [
+            {
+                'id': t[0],
+                'gesture': t[1] or 'Spelled Word',
+                'language': t[2],
+                'timestamp': t[3],
+                'source_language': t[4]
+            } for t in translations
+        ]
+        
+        return jsonify({'translations': translation_list}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/learning/basic-gestures', methods=['GET'])
+def get_basic_learning_gestures():
+    """Return beginner-friendly gestures with simple learning tips."""
+    try:
+        tips = {
+            'hello': [
+                'Raise your open hand near shoulder level.',
+                'Move your hand side-to-side in a gentle wave.',
+                'Keep fingers relaxed and visible to the camera.'
+            ],
+            'thank_you': [
+                'Start with fingertips near your chin.',
+                'Move hand forward and slightly down.',
+                'Use smooth motion and face the camera clearly.'
+            ],
+            'yes': [
+                'Close your hand into a fist.',
+                'Nod the fist up and down like a small head nod.',
+                'Repeat at a steady pace for clarity.'
+            ],
+            'no': [
+                'Start with index and middle fingers together with thumb.',
+                'Open and close the two fingers like a beak motion.',
+                'Keep your hand centered in the frame.'
+            ]
+        }
+
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            '''SELECT gesture_name, english_meaning, luganda_meaning, description
+               FROM gestures
+               WHERE gesture_name IN ('hello', 'thank_you', 'yes', 'no')
+               ORDER BY gesture_name'''
+        )
+        rows = cursor.fetchall()
+
+        lessons = [
+            {
+                'gesture_name': row[0],
+                'english_meaning': row[1],
+                'luganda_meaning': row[2],
+                'description': row[3],
+                'practice_tips': tips.get(row[0], ['Practice slowly and keep your hand visible.'])
+            }
+            for row in rows
+        ]
+
+        return jsonify({'lessons': lessons}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/profile/<int:user_id>', methods=['DELETE'])
+def delete_user_account(user_id):
+    """Delete user account"""
+    try:
+        token = request.headers.get('Authorization')
+        
+        if not token or not token.startswith('user_'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        # Verify user is deleting their own account
+        token_user_id = int(token.split('_')[1])
+        if token_user_id != user_id:
+            return jsonify({'error': 'Cannot delete other user accounts'}), 403
+        
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Delete user and associated translations
+        cursor.execute('DELETE FROM translations WHERE user_id = ?', (user_id,))
+        cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        db.commit()
+        
+        return jsonify({'success': True, 'message': 'Account deleted'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============ LETTER SPELLING & FINGER SPELLING ENDPOINTS ============
+
+@app.route('/api/letters', methods=['GET'])
+def get_letter_gestures():
+    """Get all available letter gestures (A-Z)"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT id, letter, gesture_name, description FROM letter_gestures ORDER BY letter')
+        letters = cursor.fetchall()
+        
+        letter_list = [
+            {
+                'id': l[0],
+                'letter': l[1],
+                'gesture_name': l[2],
+                'description': l[3]
+            } for l in letters
+        ]
+        
+        return jsonify({'letters': letter_list}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/recognize-letter', methods=['POST'])
+def recognize_letter():
+    """
+    Recognize a single letter from a gesture image (finger spelling)
+    Expected: gesture_image (base64 encoded)
+    
+    Returns: recognized letter (A-Z)
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        gesture_data = data.get('gesture_image')
+        
+        if not gesture_data:
+            return jsonify({'error': 'No gesture image provided'}), 400
+        
+        # Recognize letter from gesture
+        recognized_letter = gesture_processor.recognize_letter(gesture_data)
+        
+        if not recognized_letter:
+            return jsonify({'error': 'Could not recognize letter. Please try again.'}), 400
+        
+        # Validate it's a letter
+        if recognized_letter.upper() not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            return jsonify({'error': 'Invalid letter recognized'}), 400
+        
+        return jsonify({
+            'letter': recognized_letter.upper(),
+            'success': True
+        }), 200
+        
+    except Exception as e:
+        print(f"Error recognizing letter: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/spell-word', methods=['POST'])
+def spell_word():
+    """
+    Build a word from recognized letters (accumulate letters to form words)
+    Expected: letters (array of single letter strings)
+    
+    Returns: spelled word and translations
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        letters = data.get('letters', [])
+        target_language = data.get('target_language', 'english')
+        
+        if not letters or len(letters) == 0:
+            return jsonify({'error': 'No letters provided'}), 400
+        
+        # Convert to uppercase and validate
+        spelled_word = ''.join(str(letter).upper() for letter in letters)
+        
+        # Validate all characters are letters
+        if not all(c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' for c in spelled_word):
+            return jsonify({'error': 'Invalid letters in word'}), 400
+        
+        if len(spelled_word) > 50:
+            return jsonify({'error': 'Word is too long (max 50 letters)'}), 400
+        
+        # Log the spelling action
+        user_id = None
+        token = request.headers.get('Authorization')
+        if token and token.startswith('user_'):
+            try:
+                user_id = int(token.split('_')[1])
+            except (IndexError, ValueError):
+                pass
+        
+        return jsonify({
+            'word': spelled_word,
+            'letter_count': len(letters),
+            'letters': letters,
+            'success': True
+        }), 200
+        
+    except Exception as e:
+        print(f"Error spelling word: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/translate-word', methods=['POST'])
+def translate_word():
+    """
+    Translate a spelled word to English/Luganda
+    Expected: word (spelled out word), target_language
+    
+    Returns: word and translations
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        word = data.get('word', '').strip()
+        target_language = data.get('target_language', 'english').lower()
+        
+        if not word:
+            return jsonify({'error': 'No word provided'}), 400
+        
+        # Validate word contains only letters
+        if not all(c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' for c in word):
+            return jsonify({'error': 'Word must contain only letters'}), 400
+        
+        word_lower = word.lower()
+        
+        # Log user action
+        user_id = None
+        token = request.headers.get('Authorization')
+        if token and token.startswith('user_'):
+            try:
+                user_id = int(token.split('_')[1])
+                db = get_db()
+                cursor = db.cursor()
+                # Log as a translation event
+                cursor.execute(
+                    '''INSERT INTO translations (gesture_id, user_id, source_language, target_language, timestamp)
+                       VALUES (?, ?, ?, ?, ?)''',
+                    (None, user_id, 'spelled_word', target_language, get_nairobi_time())
+                )
+                db.commit()
+            except (IndexError, ValueError):
+                pass
+        
+        # Return word with indication that it was spelled out
+        return jsonify({
+            'word': word_lower,
+            'word_uppercase': word.upper(),
+            'letter_count': len(word),
+            'source': 'finger_spelling',
+            'target_language': target_language,
+            'success': True,
+            'message': f'Word "{word}" spelled using finger spelling'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error translating word: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/train', methods=['POST'])
+def admin_train_model():
+    """Train ML model with captured gesture frames (Admin only)"""
+    try:
+        data = request.get_json(silent=True) or {}
+        token = request.headers.get('Authorization')
+        
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        gesture_name = data.get('gesture_name')
+        gesture_label = data.get('gesture_label')
+        frames = data.get('frames', [])
+        
+        if not gesture_name or not frames:
+            return jsonify({'error': 'Missing gesture name or frames'}), 400
+        
+        if len(frames) < 10:
+            return jsonify({'error': 'Need at least 10 frames for training'}), 400
+        
+        # Create training data directory if not exists
+        training_dir = Path(PROJECT_BACKEND_DIR) / 'training_data'
+        training_dir.mkdir(exist_ok=True)
+        
+        # Save frames as training data
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        gesture_folder = training_dir / f"{gesture_label}_{session_id}"
+        gesture_folder.mkdir(exist_ok=True)
+        
+        saved_count = 0
+        for idx, frame_base64 in enumerate(frames):
+            try:
+                frame_data = frame_base64.split(',', 1)[1] if ',' in frame_base64 else frame_base64
+                frame_bytes = base64.b64decode(frame_data)
+                
+                frame_path = gesture_folder / f"frame_{idx:03d}.jpg"
+                with open(frame_path, 'wb') as f:
+                    f.write(frame_bytes)
+                saved_count += 1
+            except Exception as e:
+                print(f"Error saving frame {idx}: {e}")
+        
+        # Add gesture to database if not exists
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT id FROM gestures WHERE gesture_name = ?', (gesture_label,))
+        existing = cursor.fetchone()
+        
+        if not existing:
+            cursor.execute(
+                '''INSERT INTO gestures (gesture_name, english_meaning, luganda_meaning, description, created_at)
+                   VALUES (?, ?, ?, ?, ?)''',
+                (gesture_label, gesture_name, gesture_name, f'Trained via admin portal', get_nairobi_time())
+            )
+            db.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Training data saved: {saved_count} frames for gesture "{gesture_name}"',
+            'gesture_label': gesture_label,
+            'frames_saved': saved_count
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.teardown_appcontext
+def close_db(error):
+    """Close database connection"""
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)

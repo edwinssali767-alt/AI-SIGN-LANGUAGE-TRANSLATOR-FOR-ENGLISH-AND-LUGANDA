@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Sign Language Translator | Authentication</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style2.css">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+
+        <div class="logo">
+            AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA
+        </div>
+
+        <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+
+        <ul class="nav-links">
+
+            <li>
+                <select id="themeSelector" class="theme-selector">
+                    <option value="system">System (Default)</option>
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                </select>
+            </li>
+
+            <li><a href="welcome.html">Home</a></li>
+            <li><a href="translator.html">Translator</a></li>
+            <li><a href="letters.html">Letters</a></li>
+            <li><a href="gestures.html">Gestures</a></li>
+            <li><a href="pricing.html">Pricing</a></li>
+
+        </ul>
+
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobileMenu" class="mobile-menu">
+        <button class="close-menu" aria-label="Close menu">✕</button>
+        <a href="welcome.html" class="nav-link">Home</a>
+        <a href="translator.html" class="nav-link">Translator</a>
+        <a href="letters.html" class="nav-link">Letters</a>
+        <a href="gestures.html" class="nav-link">Gestures</a>
+        <a href="pricing.html" class="nav-link">Pricing</a>
+        <select id="mobileThemeSelector" class="theme-selector">
+            <option value="system">System (Default)</option>
+            <option value="light">Light Theme</option>
+            <option value="dark">Dark Theme</option>
+        </select>
+    </div>
+
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+    <!-- Authentication Container -->
+    <section class="container section">
+
+        <!-- Login Box -->
+        <div class="card auth-box login-box active" id="loginBox">
+
+            <h2 class="text-center">
+                Sign In
+            </h2>
+
+            <p class="text-center">
+                Welcome back! Sign in to your account.
+            </p>
+
+            <form id="loginForm">
+
+                <div class="form-group">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" name="username" placeholder="Enter your username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" placeholder="Enter your password"
+                        required>
+                </div>
+
+                <button type="submit" class="btn">
+                    Sign In
+                </button>
+
+                <div id="loginError" class="alert alert-danger hidden"></div>
+
+                <div id="loginSuccess" class="alert alert-success hidden"></div>
+
+            </form>
+
+            <div class="text-center mt-2">
+
+                <p>
+                    Don't have an account?
+                    <a href="auth.html?mode=signup">
+                        Create one here
+                    </a>
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- Signup Box -->
+        <div class="card auth-box signup-box hidden" id="signupBox">
+
+            <h2 class="text-center">
+                Create Account
+            </h2>
+
+            <p class="text-center">
+                Join to save your translation history.
+            </p>
+
+            <form id="signupForm">
+
+                <div class="form-group">
+                    <label for="signupUsername">Username</label>
+                    <input type="text" id="signupUsername" name="username" minlength="3" placeholder="Choose a username"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" name="email" placeholder="Enter your email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" name="password" minlength="6"
+                        placeholder="Create a password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="signupPasswordConfirm">
+                        Confirm Password
+                    </label>
+
+                    <input type="password" id="signupPasswordConfirm" name="passwordConfirm"
+                        placeholder="Confirm password" required>
+                </div>
+
+                <button type="submit" class="btn">
+                    Create Account
+                </button>
+
+                <div id="signupError" class="alert alert-danger hidden"></div>
+
+                <div id="signupSuccess" class="alert alert-success hidden"></div>
+
+            </form>
+
+            <div class="text-center mt-2">
+
+                <p>
+                    Already have an account?
+                    <a href="auth.html?mode=signin">
+                        Sign in here
+                    </a>
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- Footer Links -->
+        <div class="card text-center mt-2">
+
+            <p>
+                <a href="welcome.html">
+                    Back to Welcome
+                </a>
+                |
+                <a href="translator.html">
+                    Continue as Guest
+                </a>
+            </p>
+
+        </div>
+
+    </section>
+
+    <script src="auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const closeMenuBtn = document.querySelector('.close-menu');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                });
+            }
+            
+            if (closeMenuBtn) {
+                closeMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            const mobileThemeSelector = document.getElementById('mobileThemeSelector');
+            const themeSelector = document.getElementById('themeSelector');
+            
+            if (mobileThemeSelector && themeSelector) {
+                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
+                mobileThemeSelector.addEventListener('change', function() {
+                    themeSelector.value = this.value;
+                    document.documentElement.setAttribute('data-theme', this.value);
+                    localStorage.setItem('theme', this.value);
+                });
+            }
+            
+            document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

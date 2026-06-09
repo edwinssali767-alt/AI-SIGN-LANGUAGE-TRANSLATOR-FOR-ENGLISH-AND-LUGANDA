@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Capture - Sign Language Translator</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style2.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-content">
+                <h1 class="logo">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</h1>
+                <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+                <ul class="nav-links">
+                    <li>
+                        <select id="themeSelector" data-theme-selector class="theme-selector"
+                            aria-label="Theme selector">
+                            <option value="system">System (Default)</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </li>
+                    <li><a href="translator.html" class="nav-link">Translator</a></li>
+                    <li><a href="letters.html" class="nav-link active">Letters</a></li>
+                    <li><a href="gestures.html" class="nav-link">Learn Gestures</a></li>
+                    <li><a href="pricing.html" class="nav-link">Pricing</a></li>
+                    <li id="authNav">
+                        <a href="welcome.html" class="nav-link">Sign In / Sign Up</a>
+                    </li>
+                    <li id="profileNav" style="display: none;">
+                        <a href="profile.html" class="nav-link">Profile</a>
+                    </li>
+                    <li id="logoutNav" style="display: none;">
+                        <a href="#" class="nav-link" onclick="logout(event)">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" class="mobile-menu">
+            <button class="close-menu" aria-label="Close menu">✕</button>
+            <a href="translator.html" class="nav-link">Translator</a>
+            <a href="letters.html" class="nav-link">Letters</a>
+            <a href="gestures.html" class="nav-link">Learn Gestures</a>
+            <a href="pricing.html" class="nav-link">Pricing</a>
+            <a href="welcome.html" class="nav-link" id="mobileAuthLink">Sign In / Sign Up</a>
+            <select id="mobileThemeSelector" class="theme-selector">
+                <option value="system">System (Default)</option>
+                <option value="light">Light Theme</option>
+                <option value="dark">Dark Theme</option>
+            </select>
+        </div>
+
+        <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="letters-container">
+            <section class="info-section">
+                <h2>Spell Words Using Finger Spelling</h2>
+                <p>Capture individual letter gestures to spell out complete words. The system will recognize each letter
+                    in real-time.</p>
+                <div class="instructions">
+                    <h3>How to Use:</h3>
+                    <ol>
+                        <li>Click "Start Camera" to begin</li>
+                        <li>Show each letter gesture to the camera</li>
+                        <li>The system will recognize and display each letter</li>
+                        <li>Build your word letter by letter</li>
+                        <li>Clear letters to start a new word</li>
+                    </ol>
+                </div>
+            </section>
+
+            <section class="capture-section">
+                <!-- Camera & Capture Area -->
+                <div class="capture-area">
+                    <video id="videoFeed" autoplay playsinline></video>
+                    <div class="capture-controls">
+                        <button id="startCameraBtn" class="btn btn-primary">Start Camera</button>
+                        <button id="stopCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
+                        <button id="captureLetterBtn" class="btn btn-success" disabled>Capture Letter</button>
+                    </div>
+                </div>
+
+                <!-- Real-time Letter Display -->
+                <div class="display-section">
+                    <div class="recognized-letters">
+                        <h3>Recognized Letters:</h3>
+                        <div id="letterDisplay" class="letter-display">
+                            <span class="placeholder">Captured letters will appear here...</span>
+                        </div>
+                    </div>
+
+                    <!-- Current Letter -->
+                    <div class="current-letter">
+                        <h3>Current Letter:</h3>
+                        <div id="currentLetterBox" class="letter-box">
+                            <span id="currentLetter" class="current">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Spelled Word -->
+                    <div class="spelled-word">
+                        <h3>Spelled Word:</h3>
+                        <div id="spellWord" class="spell-word-display">
+                            <input type="text" id="wordInput" placeholder="Your spelled word will appear here" readonly>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Controls -->
+            <section class="control-section">
+                <div class="button-group">
+                    <button id="undoBtn" class="btn btn-secondary" disabled>← Undo</button>
+                    <button id="clearBtn" class="btn btn-secondary" disabled>Clear All</button>
+                    <button id="copyBtn" class="btn btn-info" disabled>Copy Word</button>
+                    <button id="translateBtn" class="btn btn-primary" disabled>Translate</button>
+                </div>
+
+                <!-- Language Selection -->
+                <div class="language-select">
+                    <label for="targetLanguage">Target Language:</label>
+                    <select id="targetLanguage">
+                        <option value="english">English</option>
+                        <option value="luganda">Luganda</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Translation Result -->
+            <section id="translationResult" class="translation-result" style="display: none;">
+                <h3>Translation Result:</h3>
+                <div class="result-box">
+                    <p><strong>Word:</strong> <span id="resultWord"></span></p>
+                    <p><strong>Language:</strong> <span id="resultLanguage"></span></p>
+                    <p><strong>Source:</strong> Finger Spelling</p>
+                </div>
+            </section>
+
+            <!-- Letter Gallery -->
+            <section class="letter-gallery">
+                <h3>Available Letters (A-Z):</h3>
+                <div id="letterGallery" class="gallery-grid">
+                    <!-- Letters will be dynamically loaded here -->
+                </div>
+            </section>
+
+            <!-- Statistics -->
+            <section class="statistics">
+                <div class="stat-box">
+                    <h4>Letters Captured:</h4>
+                    <p id="letterCount">0</p>
+                </div>
+                <div class="stat-box">
+                    <h4>Current Word Length:</h4>
+                    <p id="wordLength">0</p>
+                </div>
+                <div class="stat-box">
+                    <h4>Recognition Status:</h4>
+                    <p id="recognitionStatus">Ready</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2024 Sign Language Translator. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="theme.js"></script>
+    <script src="auth.js"></script>
+    <script src="letters.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const closeMenuBtn = document.querySelector('.close-menu');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                });
+            }
+            
+            if (closeMenuBtn) {
+                closeMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            }
+            
+            const mobileThemeSelector = document.getElementById('mobileThemeSelector');
+            const themeSelector = document.getElementById('themeSelector');
+            
+            if (mobileThemeSelector && themeSelector) {
+                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
+                mobileThemeSelector.addEventListener('change', function() {
+                    themeSelector.value = this.value;
+                    document.documentElement.setAttribute('data-theme', this.value);
+                    localStorage.setItem('theme', this.value);
+                });
+            }
+            
+            const mobileAuthLink = document.getElementById('mobileAuthLink');
+            const profileNav = document.getElementById('profileNav');
+            
+            if (mobileAuthLink && profileNav) {
+                if (profileNav.style.display !== 'none') {
+                    mobileAuthLink.href = 'profile.html';
+                    mobileAuthLink.textContent = 'Profile';
+                }
+            }
+            
+            document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

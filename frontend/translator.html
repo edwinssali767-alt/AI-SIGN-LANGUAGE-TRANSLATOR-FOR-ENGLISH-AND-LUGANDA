@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style2.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-content">
+                <h1 class="logo">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</h1>
+                <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+                <ul class="nav-links">
+                    <li>
+                        <select id="themeSelector" data-theme-selector class="theme-selector"
+                            aria-label="Theme selector">
+                            <option value="system">System (Default)</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </li>
+                    <li><a href="translator.html" class="nav-link active">Translator</a></li>
+                    <li><a href="letters.html" class="nav-link">Letters</a></li>
+                    <li><a href="gestures.html" class="nav-link">Learn Gestures</a></li>
+                    <li><a href="pricing.html" class="nav-link">Pricing</a></li>
+                    <li><a href="admin.html" class="nav-link">Admin</a></li>
+                    <li id="authNav">
+                        <a href="welcome.html" class="nav-link">Sign In / Sign Up</a>
+                    </li>
+                    <li id="profileNav" style="display: none;">
+                        <a href="profile.html" class="nav-link">Profile</a>
+                    </li>
+                    <li id="logoutNav" style="display: none;">
+                        <a href="#" class="nav-link" onclick="logout(event)">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" class="mobile-menu">
+            <button class="close-menu" aria-label="Close menu">✕</button>
+            <a href="translator.html" class="nav-link">Translator</a>
+            <a href="letters.html" class="nav-link">Letters</a>
+            <a href="gestures.html" class="nav-link">Learn Gestures</a>
+            <a href="pricing.html" class="nav-link">Pricing</a>
+            <a href="admin.html" class="nav-link">Admin</a>
+            <a href="welcome.html" class="nav-link" id="mobileAuthLink">Sign In / Sign Up</a>
+            <select id="mobileThemeSelector" class="theme-selector">
+                <option value="system">System (Default)</option>
+                <option value="light">Light Theme</option>
+                <option value="dark">Dark Theme</option>
+            </select>
+        </div>
+
+        <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <section class="translator-section">
+                <h2>For English & Luganda</h2>
+                <p class="subtitle">Capture your hand gesture to get instant translation</p>
+
+                <div class="history-badge" id="historyBadge" aria-live="polite">
+                    Translation history: <strong id="historyCountValue">0</strong>
+                </div>
+
+                <!-- Language Selection -->
+                <div class="language-selector">
+                    <label>Target Language:</label>
+                    <select id="targetLanguage">
+                        <option value="english">English</option>
+                        <option value="luganda">Luganda</option>
+                    </select>
+                </div>
+
+                <!-- Camera/Upload Section -->
+                <div class="gesture-input">
+                    <div class="camera-section">
+                        <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
+                        <canvas id="photoCanvas" style="display:none;"></canvas>
+                    </div>
+
+                    <div class="controls">
+                        <button type="button" id="startCameraBtn" class="btn btn-primary">Start Camera</button>
+                        <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture
+                            Gesture</button>
+                        <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
+                    </div>
+
+                    <div class="upload-section">
+                        <p>Or upload an image:</p>
+                        <input type="file" id="gestureUpload" accept="image/*" class="file-input">
+                    </div>
+
+                    <!-- Translated Feedback Section -->
+                    <div class="translation-feedback" id="translationFeedback">
+                        <h4 class="feedback-title">Live Translation Feedback</h4>
+                        <div class="feedback-content">
+                            <div class="feedback-item">
+                                <span class="feedback-label">Current Sign:</span>
+                                <span id="currentSign" class="feedback-value">-</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Confidence:</span>
+                                <span id="confidenceLevel" class="feedback-value">-</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Speed:</span>
+                                <span id="translationSpeed" class="feedback-value">-</span>
+                            </div>
+                        </div>
+                        <div class="feedback-actions">
+                            <button type="button" id="clearFeedbackBtn" class="btn btn-secondary hidden">Clear
+                                Feedback</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Display -->
+                <div id="resultContainer" class="result-container hidden">
+                    <div class="result-card">
+                        <h3>Translation Result</h3>
+                        <div class="result-image">
+                            <img id="resultImage" src="" alt="Captured gesture">
+                        </div>
+                        <div class="translation-result">
+                            <div class="result-item">
+                                <span class="label">Detected Gesture:</span>
+                                <span id="detectedGesture" class="value">-</span>
+                            </div>
+                            <div class="result-item">
+                                <span id="translationLabel" class="label">Translation (English):</span>
+                                <span id="translationResult" class="value translation">-</span>
+
+                            </div>
+                        </div>
+                        <button type="button" id="newTranslationBtn" class="btn btn-primary">Try Another</button>
+                    </div>
+                </div>
+
+                <!-- Error Display -->
+                <div id="errorContainer" class="error-container hidden">
+                    <div class="error-message">
+                        <span id="errorMessage"></span>
+                        <button id="closeErrorBtn" class="btn-close">✕</button>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Processing gesture...</p>
+                </div>
+
+
+        </main>
+
+        <!-- Subscription Limit Modal -->
+        <!-- Subscription Limit Modal -->
+        <div id="subscriptionModal" class="subscription-modal">
+
+            <div class="subscription-content">
+
+                <h2>Translation Limit Reached</h2>
+
+                <p>
+                    You've used all 10 free translations on the Basic Plan.
+                    Upgrade to Premium for unlimited translations.
+                </p>
+
+                <div class="subscription-plan">
+
+                    <h3>Premium Plan - UGX 15,000/month</h3>
+
+                    <ul>
+                        <li>Unlimited translations</li>
+                        <li>Letter Capture</li>
+                        <li>Gesture Library</li>
+                        <li>Priority Support</li>
+                    </ul>
+
+                </div>
+
+                <div class="subscription-actions">
+
+                    <button type="button" onclick="goToUpgrade()" class="btn">
+                        Upgrade Now
+                    </button>
+
+                    <button type="button" onclick="closeSubscriptionModal()" class="btn btn-secondary">
+                        Maybe Later
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <script src="theme.js"></script>
+        <script src="auth.js"></script>
+        <script src="translator.js?v=999"></script>
+        <script>
+            function goToUpgrade() {
+                window.location.href = 'pricing.html';
+            }
+
+            function closeSubscriptionModal() {
+                document.getElementById('subscriptionModal').style.display = 'none';
+            }
+
+            function showSubscriptionModal() {
+                const modal = document.getElementById('subscriptionModal');
+                modal.style.display = 'flex';
+            }
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+                const closeMenuBtn = document.querySelector('.close-menu');
+                const mobileMenu = document.getElementById('mobileMenu');
+                const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+                
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.addEventListener('click', function() {
+                        mobileMenu.classList.add('active');
+                        mobileMenuOverlay.classList.add('active');
+                    });
+                }
+                
+                if (closeMenuBtn) {
+                    closeMenuBtn.addEventListener('click', function() {
+                        mobileMenu.classList.remove('active');
+                        mobileMenuOverlay.classList.remove('active');
+                    });
+                }
+                
+                if (mobileMenuOverlay) {
+                    mobileMenuOverlay.addEventListener('click', function() {
+                        mobileMenu.classList.remove('active');
+                        mobileMenuOverlay.classList.remove('active');
+                    });
+                }
+                
+                const mobileThemeSelector = document.getElementById('mobileThemeSelector');
+                const themeSelector = document.getElementById('themeSelector');
+                
+                if (mobileThemeSelector && themeSelector) {
+                    mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
+                    mobileThemeSelector.addEventListener('change', function() {
+                        themeSelector.value = this.value;
+                        document.documentElement.setAttribute('data-theme', this.value);
+                        localStorage.setItem('theme', this.value);
+                    });
+                }
+                
+                const mobileAuthLink = document.getElementById('mobileAuthLink');
+                const profileNav = document.getElementById('profileNav');
+                
+                if (mobileAuthLink && profileNav) {
+                    if (profileNav.style.display !== 'none') {
+                        mobileAuthLink.href = 'profile.html';
+                        mobileAuthLink.textContent = 'Profile';
+                    }
+                }
+                
+                document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+                    link.addEventListener('click', function() {
+                        mobileMenu.classList.remove('active');
+                        mobileMenuOverlay.classList.remove('active');
+                    });
+                });
+            });
+        </script>
+</body>
+
+</html>
