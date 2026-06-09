@@ -6,10 +6,16 @@ Main Flask application file
 from flask import Flask, request, jsonify, g, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
-from config import Config, PROJECT_BACKEND_DIR
-from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
-from gesture_processor import GestureProcessor
-from translator import Translator
+try:
+    from .config import Config, PROJECT_BACKEND_DIR
+    from .database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
+    from .gesture_processor import GestureProcessor
+    from .translator import Translator
+except ImportError:
+    from config import Config, PROJECT_BACKEND_DIR
+    from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
+    from gesture_processor import GestureProcessor
+    from translator import Translator
 import os
 import smtplib
 import base64
