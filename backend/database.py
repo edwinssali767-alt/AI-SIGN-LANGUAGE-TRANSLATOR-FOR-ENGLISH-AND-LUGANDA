@@ -6,20 +6,11 @@ from datetime import datetime
 import pytz
 from flask import current_app, g
 from werkzeug.security import generate_password_hash
-
-try:
-    from .mongodb_client import (
-        get_users_collection, get_admins_collection, 
-        get_gestures_collection, get_translations_collection,
-        get_letters_collection
-    )
-except ImportError:
-    from mongodb_client import (
-        get_users_collection, get_admins_collection, 
-        get_gestures_collection, get_translations_collection,
-        get_letters_collection
-    )
-
+from mongodb_client import (
+    get_users_collection, get_admins_collection, 
+    get_gestures_collection, get_translations_collection,
+    get_letters_collection
+)
 
 TIMEZONE = pytz.timezone('Africa/Nairobi')
 
@@ -55,10 +46,7 @@ def get_database_path():
 
 def init_mongodb(app):
     """Initialize MongoDB with sample data."""
-    try:
-        from .mongodb_client import init_mongodb_indexes
-    except ImportError:
-        from mongodb_client import init_mongodb_indexes
+    from mongodb_client import init_mongodb_indexes
     
     users = get_users_collection()
     admin_users = get_admins_collection()
@@ -269,10 +257,7 @@ def close_mongo_or_sqlite(error):
     try:
         from flask import current_app
         if current_app and current_app.config.get('MONGODB_URI'):
-            try:
-                from .mongodb_client import close_mongo_client
-            except ImportError:
-                from mongodb_client import close_mongo_client
+            from mongodb_client import close_mongo_client
             close_mongo_client(error)
         else:
             db = getattr(g, '_database', None)
