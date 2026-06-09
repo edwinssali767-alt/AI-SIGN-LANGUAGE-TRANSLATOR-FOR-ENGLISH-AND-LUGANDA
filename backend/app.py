@@ -5,7 +5,11 @@ Main Flask application file
 
 from flask import Flask, request, jsonify, g, send_from_directory
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
+try:
+    from flask_socketio import SocketIO, emit
+    HAS_SOCKETIO = True
+except ImportError:
+    HAS_SOCKETIO = False
 from dotenv import load_dotenv
 from config import Config, PROJECT_BACKEND_DIR
 from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
@@ -26,7 +30,10 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.config.from_object(Config)
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+if HAS_SOCKETIO:
+    socketio = SocketIO(app, cors_allowed_origins="*")
+else:
+    socketio = None
 
 FRONTEND_FOLDER = PROJECT_BACKEND_DIR.parent / 'frontend'
 VIDEO_FOLDER = app.config['LEARNING_VIDEO_FOLDER']
@@ -1307,4 +1314,7 @@ def close_db(error):
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    if socketio:
+        socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    else:
+        app.run(debug=True, host='0.0.0.0', port=5000)
