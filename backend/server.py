@@ -926,14 +926,13 @@ def get_user_profile(user_id):
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        return jsonify({
+return jsonify({
             'user_id': str(user['_id']),
             'username': user['username'],
             'email': user['email'],
             'created_at': user.get('created_at')
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
         return jsonify({'error': str(e)}), 500
 
 
