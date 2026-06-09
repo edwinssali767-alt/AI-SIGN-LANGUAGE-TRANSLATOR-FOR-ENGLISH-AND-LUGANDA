@@ -11,10 +11,6 @@ try:
 except ImportError:
     HAS_SOCKETIO = False
 from dotenv import load_dotenv
-from config import Config, PROJECT_BACKEND_DIR
-from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
-from gesture_processor import GestureProcessor
-from translator import Translator
 import os
 import smtplib
 import base64
@@ -22,8 +18,15 @@ from email.message import EmailMessage
 from pathlib import Path
 from werkzeug.security import check_password_hash, generate_password_hash
 
-# Load environment variables from .env file
+# Load environment variables before importing Config because config.py reads
+# os.environ while defining the Config class.
+load_dotenv(Path(__file__).resolve().parent / '.env')
 load_dotenv()
+
+from config import Config, PROJECT_BACKEND_DIR
+from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
+from gesture_processor import GestureProcessor
+from translator import Translator
 
 
 app = Flask(__name__)
@@ -34,6 +37,16 @@ if HAS_SOCKETIO:
     socketio = SocketIO(app, cors_allowed_origins="*")
 else:
     socketio = None
+
+
+def socketio_event(event):
+    """Register a Socket.IO event only when Flask-SocketIO is installed."""
+    if socketio is None:
+        def decorator(func):
+            return func
+        return decorator
+    return socketio.on(event)
+
 
 FRONTEND_FOLDER = PROJECT_BACKEND_DIR.parent / 'frontend'
 VIDEO_FOLDER = app.config['LEARNING_VIDEO_FOLDER']
@@ -349,7 +362,7 @@ def translate_gesture_motion():
         return jsonify({'error': str(e)}), 500
 
 
-@socketio.on('start_realtime')
+@socketio_event('start_realtime')
 def handle_realtime_start(data):
     """Start real-time gesture recognition session."""
     token = data.get('token')
@@ -368,7 +381,7 @@ def handle_realtime_start(data):
     emit('realtime_status', {'status': 'ready', 'message': 'Real-time translation ready'})
 
 
-@socketio.on('realtime_frame')
+@socketio_event('realtime_frame')
 def handle_realtime_frame(data):
     """Process a single frame for real-time gesture recognition."""
     token = data.get('token')
@@ -412,7 +425,7 @@ def handle_realtime_frame(data):
     })
 
 
-@socketio.on('stop_realtime')
+@socketio_event('stop_realtime')
 def handle_realtime_stop():
     """Stop real-time gesture recognition session."""
     emit('realtime_status', {'status': 'stopped', 'message': 'Real-time translation stopped'})
@@ -925,8 +938,8 @@ def get_user_profile(user_id):
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
-        
-return jsonify({
+
+        return jsonify({
             'user_id': str(user['_id']),
             'username': user['username'],
             'email': user['email'],
