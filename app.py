@@ -2,14 +2,16 @@ import os
 import sys
 from pathlib import Path
 
-backend_dir = Path(__file__).parent / 'backend'
-if str(backend_dir) not in sys.path:
-    sys.path.insert(0, str(backend_dir))
+project_root = Path(__file__).resolve().parent
+backend_dir = project_root / 'backend'
+for path in (project_root, backend_dir):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 os.chdir(backend_dir)
 
-# Now we can import from backend
-from app import app
+# Import the backend Flask app without shadowing this wrapper module.
+from backend.app import app
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

@@ -66,6 +66,7 @@ The database is automatically created on first backend run. If you need to reset
 ```bash
 cd backend
 del sign_translator.db
+cd ..
 python app.py
 ```
 
@@ -73,6 +74,7 @@ python app.py
 ```bash
 cd backend
 rm sign_translator.db
+cd ..
 python3 app.py
 ```
 
@@ -97,7 +99,9 @@ chmod +x start.sh
 ```bash
 cd backend
 # Activate venv first
+cd ..
 python app.py
+# For deployment/hosting: gunicorn -w 1 -b 0.0.0.0:$PORT wsgi:app
 # or python3 app.py on Mac/Linux
 ```
 
@@ -267,7 +271,8 @@ kill -9 [PID]
 ```bash
 # Delete and recreate
 rm backend/sign_translator.db
-python backend/app.py
+python app.py
+# For deployment/hosting: gunicorn -w 1 -b 0.0.0.0:$PORT wsgi:app
 ```
 
 ### CORS Issues

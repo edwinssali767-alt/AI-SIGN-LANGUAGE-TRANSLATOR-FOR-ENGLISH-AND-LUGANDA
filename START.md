@@ -97,7 +97,8 @@ pip install -r requirements.txt
 # Mac/Linux: ./start.sh
 
 # OR manually:
-# Terminal 1: python backend/app.py
+# Terminal 1: python app.py
+# Deployment/hosting uses: gunicorn -w 1 -b 0.0.0.0:$PORT wsgi:app
 # Terminal 2: python -m http.server 8000 (in frontend folder)
 # Browser: http://localhost:8000
 ```
