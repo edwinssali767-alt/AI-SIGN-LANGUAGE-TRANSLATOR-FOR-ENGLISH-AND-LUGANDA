@@ -7,6 +7,9 @@ if backend_path not in sys.path:
 
 from server import app as application, socketio
 
+# Alias for gunicorn
+app = application
+
 if __name__ == "__main__":
     if socketio:
         socketio.run(application, host="0.0.0.0", port=5000)
