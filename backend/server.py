@@ -772,7 +772,7 @@ def user_signup():
             'subscription_tier': 'basic'
         }
         result = users.insert_one(user_doc)
-        user_id = result.inserted_id
+        user_id = str(result.inserted_id)
         subscription = get_user_subscription_payload(user_id)
         
         return jsonify({
@@ -876,7 +876,7 @@ def user_subscription():
 
             return jsonify({'subscription': subscription}), 200
 
-data = request.get_json(silent=True) or {}
+        data = request.get_json(silent=True) or {}
         requested_tier = str(data.get('tier', '')).strip().lower()
         if requested_tier not in {'basic', 'premium'}:
             return jsonify({'error': 'Invalid subscription tier'}), 400
