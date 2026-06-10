@@ -1168,14 +1168,14 @@ tr:hover {
     min-width: 0;
 }
 
-.switch-camera-btn {
-    margin-top: 10px;
-}
+
+
+
 
 .realtime-translation-panel {
-    flex: 0 0 350px;
-    width: 350px;
-    height: 350px;
+    flex: 0 0 900px;
+    width: 900px;
+    height: 900px;
     background: var(--primary-light);
     padding: 20px;
     border-radius: var(--radius);
@@ -1228,8 +1228,8 @@ tr:hover {
 }
 
 .camera-feed {
-    width: 350px;
-    height: 350px;
+    width: 900px;
+    height: 900px;
     background: black;
     border-radius: 14px;
     border: 3px solid var(--primary-light);
