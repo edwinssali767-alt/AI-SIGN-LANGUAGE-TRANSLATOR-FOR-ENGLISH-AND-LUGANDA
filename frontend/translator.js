@@ -44,7 +44,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const stopCameraBtn = document.getElementById('stopCameraBtn');
     const cameraFeed = document.getElementById('cameraFeed');
     const photoCanvas = document.getElementById('photoCanvas');
-    const gestureUpload = document.getElementById('gestureUpload');
     targetLanguage = document.getElementById('targetLanguage');
     const translationLabel = document.getElementById('translationLabel');
     const resultContainer = document.getElementById('resultContainer');
@@ -81,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const learningLessons = document.getElementById('learningLessons');
     realtimeBtn = document.getElementById('realtimeBtn');
 
-    if (!startCameraBtn || !captureBtn || !stopCameraBtn || !detectedGesture || !translationResult) {
+    if (!startCameraBtn || !captureBtn || !stopCameraBtn || !detectedGesture || !translationResult || !translationLabel) {
         console.error('Translator page is missing required DOM elements');
         return;
     }
@@ -97,7 +96,6 @@ document.addEventListener('DOMContentLoaded', function () {
     startCameraBtn.addEventListener('click', startCamera);
     stopCameraBtn.addEventListener('click', stopCamera);
     captureBtn.addEventListener('click', captureGesture);
-    gestureUpload.addEventListener('change', handleFileUpload);
     if (realtimeBtn) {
         realtimeBtn.addEventListener('click', toggleRealtimeMode);
     }
@@ -105,7 +103,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (switchCameraBtn) {
         switchCameraBtn.addEventListener('click', switchCamera);
     }
-    newTranslationBtn.style.display = 'none';
+    if (newTranslationBtn) {
+        newTranslationBtn.addEventListener('click', () => {
+            resultContainer.classList.add('hidden');
+            feedbackContainer?.classList.add('hidden');
+            if (typeof captureBtn !== 'undefined') captureBtn.disabled = !mediaStream;
+        });
+    }
     if (closeErrorBtn) {
         closeErrorBtn.addEventListener('click', hideError);
     }
@@ -503,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function showLoading(state) {
         loadingIndicator.classList.toggle('hidden', !state);
         captureBtn.disabled = state;
-        gestureUpload.disabled = state;
+        
     }
 
     function showError(message) {
@@ -596,6 +600,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateTranslationLabel() {
+        if (!translationLabel || !targetLanguage) {
+            return;
+        }
         const language = targetLanguage.value === 'luganda' ? 'Luganda' : 'English';
         translationLabel.textContent = `Translation (${language}):`;
     }
