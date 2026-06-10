@@ -184,7 +184,7 @@ class LetterCapture {
             this.elements.wordInput.value = '';
         } else {
             this.elements.letterDisplay.innerHTML = this.capturedLetters
-                .map(letter => `<span>${letter}</span>`)
+                .map(letter => `<span class="letter-badge">${letter}</span>`)
                 .join('');
 
             this.elements.currentLetter.textContent = this.currentLetter || '-';
