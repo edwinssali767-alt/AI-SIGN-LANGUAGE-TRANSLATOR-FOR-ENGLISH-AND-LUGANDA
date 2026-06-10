@@ -86,7 +86,6 @@
                         <div class="camera-section">
                             <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
                             <canvas id="photoCanvas" style="display:none;"></canvas>
-                            
                         </div>
 
                         <div class="realtime-translation-panel">
@@ -105,39 +104,57 @@
                     </div>
 
                     <div class="controls">
-<button type="button" id="startCameraBtn" class="btn btn-primary">Start Camera</button>
-                         <button type="button" id="realtimeBtn" class="btn btn-secondary" disabled>Real-time Translation</button>
-                         <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture
-                             Gesture</button>
-                         <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
-                         <button type="button" id="switchCameraBtn" class="btn btn-secondary" disabled>Switch Camera</button>
-                     </div>
+                        <button type="button" id="startCameraBtn" class="btn btn-primary">Start Camera</button>
+                        <button type="button" id="realtimeBtn" class="btn btn-secondary" disabled>Real-time</button>
+                        <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture</button>
+                        <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop</button>
+                        <button type="button" id="switchCameraBtn" class="btn btn-secondary" disabled>Switch</button>
+                    </div>
 
                     <div class="upload-section">
-                        <p>Or upload an image:</p>
                         <input type="file" id="gestureUpload" accept="image/*" class="file-input">
                     </div>
                 </div>
 
-                <!-- Result Display -->
-                <div id="resultContainer" class="result-container hidden">
-                    <div class="result-card">
-                        <h3>Translation Result</h3>
-                        <div class="result-image">
-                            <img id="resultImage" src="" alt="Captured gesture">
-                        </div>
-                        <div class="translation-result">
-                            <div class="result-item">
-                                <span class="label">Detected Gesture:</span>
-                                <span id="detectedGesture" class="value">-</span>
+                <div class="bottom-panels">
+                    <!-- Result Display -->
+                    <div id="resultContainer" class="result-container hidden">
+                        <div class="result-card">
+                            <h3>Translation Result</h3>
+                            <div class="result-image">
+                                <img id="resultImage" src="" alt="Captured gesture">
                             </div>
-                            <div class="result-item">
-                                <span id="translationLabel" class="label">Translation (English):</span>
-                                <span id="translationResult" class="value translation">-</span>
+                            <div class="translation-result">
+                                <div class="result-item">
+                                    <span class="label">Detected:</span>
+                                    <span id="detectedGesture" class="value">-</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="label">Translation:</span>
+                                    <span id="translationResult" class="value translation">-</span>
+                                </div>
+                            </div>
+                            <button type="button" id="newTranslationBtn" class="btn btn-primary">Try Another</button>
+                        </div>
+                    </div>
 
+                    <!-- Feedback Display -->
+                    <div id="feedbackContainer" class="translation-feedback hidden">
+                        <h4 class="feedback-title">Translation Feedback</h4>
+                        <div class="feedback-content">
+                            <div class="feedback-item">
+                                <span class="feedback-label">Confidence</span>
+                                <span id="confidenceValue" class="feedback-value">-</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Gesture</span>
+                                <span id="gestureValue" class="feedback-value">-</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Language</span>
+                                <span id="langValue" class="feedback-value">-</span>
                             </div>
                         </div>
-                        <button type="button" id="newTranslationBtn" class="btn btn-primary">Try Another</button>
                     </div>
                 </div>
 
