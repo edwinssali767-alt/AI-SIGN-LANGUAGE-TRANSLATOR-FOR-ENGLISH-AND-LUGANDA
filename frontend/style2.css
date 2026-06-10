@@ -1445,7 +1445,7 @@ tr:hover {
 }
 
 /* ==================================================
-    GESTURES RESPONSIVE
+   GESTURES RESPONSIVE
 ================================================== */
 
 @media(max-width:480px) {
@@ -1539,183 +1539,310 @@ tr:hover {
 }
 
 /* ==================================================
-    SMALL MOBILE SCREENS
+   SMALL MOBILE SCREENS
 ================================================== */
 
-.pricing-container {
+/* Base responsive rules for 768px and below */
+@media(max-width:768px) {
 
-    width: 90%;
+    .mobile-menu-btn {
+        display: block;
+    }
 
-    max-width: 1300px;
+    .nav-links {
+        display: none;
+    }
 
-    margin: auto;
+    .nav-links.active {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        gap: 10px;
+    }
 
-    padding: 50px 0;
+    .container {
+        width: 95%;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    .translator-section {
+        height: auto;
+        padding: 15px 0;
+    }
+
+    .camera-container {
+        grid-template-columns: 1fr;
+    }
+
+    .camera-section {
+        display: flex;
+        justify-content: center;
+    }
+
+    .camera-feed {
+        max-width: 100%;
+    }
+
+    .right-panel {
+        width: 100%;
+    }
+
+    .realtime-translation-panel {
+        max-height: none;
+    }
+
+    .controls {
+        flex-wrap: wrap;
+    }
+
+    .controls .btn {
+        flex: 1 1 auto;
+        min-width: 100px;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .button-group .btn {
+        width: 100%;
+    }
+
+    .feedback-content {
+        grid-template-columns: 1fr;
+    }
+
+    .bottom-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .pricing-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .pricing-card.featured {
+        transform: none;
+    }
+
+    .pricing-card.featured:hover {
+        transform: translateY(-5px);
+    }
+
+    .plan-price {
+        font-size: 2.3rem;
+    }
+
+    .profile-container {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .info-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar-nav .nav-links {
+        display: none;
+    }
+
+    .statistics {
+        grid-template-columns: 1fr;
+    }
+
+    .letter-gallery {
+        padding: 15px;
+    }
+
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    }
+
+    .search-filter {
+        flex-direction: column;
+    }
+
+    .search-input,
+    .filter-select {
+        width: 100%;
+    }
 }
 
-.pricing-header {
-
-    text-align: center;
-
-    margin-bottom: 50px;
-}
-
-.pricing-header h1 {
-
-    color: var(--primary);
-
-    margin-bottom: 15px;
-}
-
-.pricing-header p {
-
-    max-width: 700px;
-
-    margin: auto;
-}
-
-.pricing-cards {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(auto-fit,
-            minmax(320px, 1fr));
-
-    gap: 30px;
-}
-
-
-/* ==================================================
-   PLAN CARDS
-================================================== */
-
-.pricing-card {
-
-    background: var(--card);
-
-    padding: 35px;
-
-    border-radius: var(--radius);
-}
-
-/* ==================================================
-   PLAN CARDS
-================================================== */
-
-.pricing-card {
-
-    background: var(--card);
-
-    padding: 35px;
-
-    border-radius: 18px;
-
-    box-shadow: var(--shadow);
-
-    position: relative;
-
-    transition: var(--transition);
-
-    overflow: hidden;
-}
-
-.pricing-card:hover {
-
-    transform: translateY(-8px);
-
-    box-shadow:
-        0 20px 40px rgba(37, 99, 235, .12);
-}
-
-.pricing-card.featured {
-
-    border: 3px solid var(--primary);
-
-    transform: scale(1.02);
-}
-
-.pricing-card.featured:hover {
-
-    transform:
-        scale(1.02) translateY(-8px);
-}
-
-.pricing-card.featured::before {
-
-    content: "MOST POPULAR";
-
-    position: absolute;
-
-    top: 15px;
-    right: -35px;
-
-    background: var(--primary);
-
-    color: white;
-
-    padding: 8px 40px;
-
-    font-size: .75rem;
-
-    font-weight: 700;
-
-    transform: rotate(45deg);
-}
-
-
-/* ==================================================
-   PLAN INFORMATION
-================================================== */
-
-.plan-name {
-
-    font-size: 1.7rem;
-
-    font-weight: 700;
-
-    color: var(--primary);
-
-    margin-bottom: 10px;
-}
-
-.plan-price {
-
-    font-size: 3rem;
-
-    font-weight: 800;
-
-    color: var(--text);
-
-    margin-bottom: 10px;
-}
-
-.plan-price span {
-
-    font-size: 1rem;
-
-    color: var(--text-light);
-
-    font-weight: 500;
-}
-
-.plan-duration {
-
-    color: var(--text-light);
-
-    margin-bottom: 25px;
-}
-
-
-/* ==================================================
-   FEATURES LIST
-================================================== */
-
-.plan-features {
-
-    list-style: none;
-
-    margin-bottom: 30px;
+/* Small mobile screens - 480px and below */
+@media(max-width:480px) {
+
+    .navbar {
+        padding: 10px 15px;
+    }
+
+    .logo {
+        font-size: 1rem;
+    }
+
+    .nav-links a {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    .theme-selector {
+        min-width: 100%;
+    }
+
+    .container {
+        width: 100%;
+        padding: 0 10px;
+    }
+
+    h1 {
+        font-size: 1.6rem;
+    }
+
+    h2 {
+        font-size: 1.4rem;
+    }
+
+    h3 {
+        font-size: 1.2rem;
+    }
+
+    .card {
+        padding: 15px;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .camera-feed {
+        max-width: 100%;
+    }
+
+    .realtime-translation-panel {
+        max-height: none;
+    }
+
+    .gallery-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+
+    .gallery-item {
+        padding: 10px 6px;
+        font-size: 1rem;
+    }
+
+    .letter-box {
+        width: 90px;
+        height: 90px;
+    }
+
+    .current {
+        font-size: 2.2rem;
+    }
+
+    .letter-display span {
+        font-size: 1rem;
+    }
+
+    .gesture-card {
+        padding: 16px;
+    }
+
+    .pricing-card {
+        padding: 20px 15px;
+    }
+
+    .plan-price {
+        font-size: 2rem;
+    }
+
+    .profile-sidebar {
+        padding: 20px;
+    }
+
+    .avatar-circle {
+        width: 80px;
+        height: 80px;
+        font-size: 2.5rem;
+    }
+
+    .info-card {
+        padding: 15px;
+    }
+
+    .card-icon {
+        font-size: 1.5rem;
+    }
+
+    .card-value {
+        font-size: 0.9rem;
+    }
+
+    .sidebar-item {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+
+    .profile-section-box {
+        padding: 20px;
+    }
+
+    .settings-group {
+        padding: 20px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+
+    .feedback-content {
+        grid-template-columns: 1fr;
+    }
+
+    .bottom-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-box {
+        padding: 15px;
+    }
+
+    .translation-value {
+        font-size: 0.85rem;
+    }
+
+    .search-filter {
+        flex-direction: column;
+    }
+
+    .search-input,
+    .filter-select {
+        width: 100%;
+    }
+
+    table {
+        font-size: 0.8rem;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    th, td {
+        padding: 8px 6px;
+    }
 }
 
 .plan-features li {
