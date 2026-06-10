@@ -1172,12 +1172,13 @@ tr:hover {
 
 .realtime-translation-panel {
     background: var(--primary-light);
-    padding: 15px;
+    padding: 12px;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    max-height: 220px;
+    overflow-y: auto;
 }
 
 .realtime-translation-panel h4 {
