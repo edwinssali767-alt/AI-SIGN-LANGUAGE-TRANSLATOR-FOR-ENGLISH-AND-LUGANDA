@@ -1166,9 +1166,9 @@ tr:hover {
 }
 
 .camera-feed {
-    width: 500px;
-    height: 500px;
-    max-width: 100%;
+    width: 100%;
+    max-width: 500px;
+    aspect-ratio: 1 / 1;
     background: black;
     border-radius: 10px;
     border: 2px solid var(--primary-light);
