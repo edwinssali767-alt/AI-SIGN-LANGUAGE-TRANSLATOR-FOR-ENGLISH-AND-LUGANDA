@@ -1156,18 +1156,17 @@ tr:hover {
 
 .camera-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto;
     gap: 15px;
     flex: 1;
     min-height: 0;
+    align-items: start;
 }
 
-.camera-section {
-    text-align: center;
+.right-panel {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    gap: 10px;
 }
 
 .realtime-translation-panel {
