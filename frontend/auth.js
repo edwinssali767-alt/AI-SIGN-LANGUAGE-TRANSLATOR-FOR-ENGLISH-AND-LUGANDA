@@ -41,6 +41,20 @@ async function checkServerStatus() {
     }
 }
 
+function hideAlert(element) {
+    if (!element) return;
+    element.textContent = '';
+    element.classList.remove('show');
+    element.classList.add('hidden');
+}
+
+function showAlert(element, message) {
+    if (!element) return;
+    element.textContent = message;
+    element.classList.remove('hidden');
+    element.classList.add('show');
+}
+
 function getSystemTheme() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -114,10 +128,8 @@ if (loginForm) {
         const submitBtn = e.target.querySelector('button[type="submit"]');
 
         // Clear previous messages
-        errorDiv.textContent = '';
-        errorDiv.classList.remove('show');
-        successDiv.textContent = '';
-        successDiv.classList.remove('show');
+        hideAlert(errorDiv);
+        hideAlert(successDiv);
 
         // Disable button
         submitBtn.disabled = true;
@@ -150,25 +162,22 @@ if (loginForm) {
 
                 initializeUserSubscription(data.subscription);
 
-                successDiv.textContent = `Welcome back, ${username}! Redirecting...`;
-                successDiv.classList.add('show');
+                showAlert(successDiv, `Welcome back, ${username}! Redirecting...`);
 
                 // Redirect after 1.5 seconds
                 setTimeout(() => {
                     window.location.href = 'profile.html';
                 }, 1500);
             } else {
-                errorDiv.textContent = data.error || 'Login failed. Please try again.';
-                errorDiv.classList.add('show');
+                showAlert(errorDiv, data.error || 'Login failed. Please try again.');
             }
         } catch (error) {
             console.error('Login error:', error);
             if (error.message === 'Server unreachable' || error.message.includes('Failed to fetch') || !navigator.onLine) {
-                errorDiv.textContent = `Cannot connect to server. API_BASE=${API_BASE}`;
+                showAlert(errorDiv, `Cannot connect to server. API_BASE=${API_BASE}`);
             } else {
-                errorDiv.textContent = 'Login failed. Please try again.';
+                showAlert(errorDiv, 'Login failed. Please try again.');
             }
-            errorDiv.classList.add('show');
         } finally {
             submitBtn.disabled = false;
             submitBtn.classList.remove('loading');
@@ -192,27 +201,22 @@ if (signupForm) {
         const submitBtn = e.target.querySelector('button[type="submit"]');
 
         // Clear previous messages
-        errorDiv.textContent = '';
-        errorDiv.classList.remove('show');
-        successDiv.textContent = '';
-        successDiv.classList.remove('show');
+        hideAlert(errorDiv);
+        hideAlert(successDiv);
 
         // Validate inputs
         if (username.length < 3) {
-            errorDiv.textContent = 'Username must be at least 3 characters';
-            errorDiv.classList.add('show');
+            showAlert(errorDiv, 'Username must be at least 3 characters');
             return;
         }
 
         if (password.length < 6) {
-            errorDiv.textContent = 'Password must be at least 6 characters';
-            errorDiv.classList.add('show');
+            showAlert(errorDiv, 'Password must be at least 6 characters');
             return;
         }
 
         if (password !== passwordConfirm) {
-            errorDiv.textContent = 'Passwords do not match';
-            errorDiv.classList.add('show');
+            showAlert(errorDiv, 'Passwords do not match');
             return;
         }
 
@@ -221,10 +225,7 @@ if (signupForm) {
         submitBtn.classList.add('loading');
 
         try {
-            console.log('API_BASE:', API_BASE);
-            console.log('Fetching:', `${API_BASE}/user/signup`);
             const serverOk = await checkServerStatus();
-            console.log('Server OK:', serverOk);
             if (!serverOk) {
                 throw new Error('Server unreachable');
             }
@@ -241,8 +242,7 @@ if (signupForm) {
             const data = contentType.includes('application/json') ? await response.json() : {};
 
             if (response.ok) {
-                successDiv.textContent = 'Account created! Signing you in...';
-                successDiv.classList.add('show');
+                showAlert(successDiv, 'Account created! Signing you in...');
 
                 localStorage.setItem('user_id', data.user_id);
                 localStorage.setItem('username', data.username);
@@ -266,18 +266,15 @@ if (signupForm) {
                 } else if (response.status >= 500) {
                     errorMsg = data.error || 'Server error. Please try again later.';
                 }
-                errorDiv.textContent = errorMsg;
-                errorDiv.classList.add('show');
+                showAlert(errorDiv, errorMsg);
             }
         } catch (error) {
             console.error('Signup error:', error);
-            console.error('API_BASE at error:', API_BASE);
             if (error.message === 'Server unreachable' || error.message.includes('Failed to fetch') || !navigator.onLine) {
-                errorDiv.textContent = `Cannot connect to server. API_BASE=${API_BASE}`;
+                showAlert(errorDiv, `Cannot connect to server. API_BASE=${API_BASE}`);
             } else {
-                errorDiv.textContent = 'Signup failed. Please try again.';
+                showAlert(errorDiv, 'Signup failed. Please try again.');
             }
-            errorDiv.classList.add('show');
         } finally {
             submitBtn.disabled = false;
             submitBtn.classList.remove('loading');

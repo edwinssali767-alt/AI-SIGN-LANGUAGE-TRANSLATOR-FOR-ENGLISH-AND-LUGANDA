@@ -26,6 +26,13 @@ load_dotenv()
 from config import Config, PROJECT_BACKEND_DIR
 from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
 from gesture_processor import GestureProcessor
+from mongodb_client import (
+    get_admins_collection,
+    get_gestures_collection,
+    get_letters_collection,
+    get_translations_collection,
+    get_users_collection,
+)
 from translator import Translator
 
 
@@ -913,7 +920,7 @@ def user_subscription():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/user/profile/<int:user_id>', methods=['GET'])
+@app.route('/api/user/profile/<user_id>', methods=['GET'])
 def get_user_profile(user_id):
     """Get user profile"""
     try:
@@ -923,7 +930,7 @@ def get_user_profile(user_id):
         if not token_user_id:
             return jsonify({'error': 'Unauthorized'}), 401
         
-        if token_user_id != user_id:
+        if token_user_id != str(user_id):
             return jsonify({'error': 'Cannot access other user profiles'}), 403
         
         from bson import ObjectId
@@ -949,7 +956,7 @@ def get_user_profile(user_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/user/profile/<int:user_id>', methods=['PUT'])
+@app.route('/api/user/profile/<user_id>', methods=['PUT'])
 def update_user_profile(user_id):
     """Update user profile"""
     try:
@@ -1066,7 +1073,7 @@ def get_basic_learning_gestures():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/user/profile/<int:user_id>', methods=['DELETE'])
+@app.route('/api/user/profile/<user_id>', methods=['DELETE'])
 def delete_user_account(user_id):
     """Delete user account"""
     try:
