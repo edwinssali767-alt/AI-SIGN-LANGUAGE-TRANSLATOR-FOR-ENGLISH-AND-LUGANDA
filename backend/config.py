@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 PROJECT_BACKEND_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT_DIR = PROJECT_BACKEND_DIR.parent
 
 
 class Config:
@@ -27,6 +28,7 @@ class Config:
     MONGODB_GESTURES_COLLECTION = os.getenv('MONGODB_GESTURES_COLLECTION', 'gestures')
     MONGODB_TRANSLATIONS_COLLECTION = os.getenv('MONGODB_TRANSLATIONS_COLLECTION', 'translations')
     MONGODB_LETTERS_COLLECTION = os.getenv('MONGODB_LETTERS_COLLECTION', 'letter_gestures')
+    MONGODB_TUTORIALS_COLLECTION = os.getenv('MONGODB_TUTORIALS_COLLECTION', 'tutorial_videos')
 
     # Cloudinary
     CLOUDINARY_CLOUD_NAME = os.getenv('CLOUDINARY_CLOUD_NAME', '')
@@ -40,12 +42,23 @@ class Config:
     # Paths
     BASE_DIR = str(PROJECT_BACKEND_DIR)
     DATABASE = str(PROJECT_BACKEND_DIR / 'sign_translator.db')
-    UPLOAD_FOLDER = str(PROJECT_BACKEND_DIR / 'uploads')
-    LEARNING_VIDEO_FOLDER = str(PROJECT_BACKEND_DIR / 'uploads' / 'learning_videos')
-    STATIC_GESTURE_MODEL = str(PROJECT_BACKEND_DIR / 'models' / 'gesture_model.pkl')
-    STATIC_SCALER = str(PROJECT_BACKEND_DIR / 'models' / 'scaler.pkl')
-    DYNAMICS_GESTURE_MODEL = str(PROJECT_BACKEND_DIR / 'models' / 'gesture_dynamics_model.pkl')
-    DYNAMICS_SCALER = str(PROJECT_BACKEND_DIR / 'models' / 'dynamics_scaler.pkl')
+    DATASETS_DIR = str(PROJECT_ROOT_DIR / 'datasets')
+    GESTURE_DATASET_DIR = str(PROJECT_ROOT_DIR / 'datasets' / 'gestures')
+    LETTER_DATASET_DIR = str(PROJECT_ROOT_DIR / 'datasets' / 'letters')
+    MOTION_DATASET_DIR = str(PROJECT_ROOT_DIR / 'datasets' / 'gesture_motion')
+    LEGACY_GESTURE_DATASET_DIR = str(PROJECT_BACKEND_DIR / 'gesture_dataset')
+    LEGACY_MOTION_DATASET_DIR = str(PROJECT_BACKEND_DIR / 'gesture_dynamics_dataset')
+    UPLOAD_FOLDER = str(PROJECT_ROOT_DIR / 'uploads')
+    TRAINING_UPLOAD_FOLDER = str(PROJECT_ROOT_DIR / 'uploads' / 'training')
+    LEARNING_VIDEO_FOLDER = str(PROJECT_ROOT_DIR / 'uploads' / 'learning_videos')
+    MODEL_DIR = str(PROJECT_ROOT_DIR / 'models')
+    LEGACY_MODEL_DIR = str(PROJECT_BACKEND_DIR / 'models')
+    STATIC_GESTURE_MODEL = str(PROJECT_ROOT_DIR / 'models' / 'gesture_model.pkl')
+    STATIC_SCALER = str(PROJECT_ROOT_DIR / 'models' / 'scaler.pkl')
+    DYNAMICS_GESTURE_MODEL = str(PROJECT_ROOT_DIR / 'models' / 'gesture_dynamics_model.pkl')
+    DYNAMICS_SCALER = str(PROJECT_ROOT_DIR / 'models' / 'dynamics_scaler.pkl')
+    LETTER_MODEL = str(PROJECT_ROOT_DIR / 'models' / 'letter_model.pkl')
+    LETTER_SCALER = str(PROJECT_ROOT_DIR / 'models' / 'letter_scaler.pkl')
 
     # CORS
     CORS_HEADERS = 'Content-Type'
@@ -57,6 +70,7 @@ class Config:
     # Gesture detection
     CONFIDENCE_THRESHOLD = float(os.getenv('CONFIDENCE_THRESHOLD', '0.5'))
     FREE_TRANSLATION_LIMIT = int(os.getenv('FREE_TRANSLATION_LIMIT', '10'))
+    GUEST_TRANSLATION_LIMIT = int(os.getenv('GUEST_TRANSLATION_LIMIT', '3'))
 
     # Email (used for welcome email after successful login)
     SMTP_HOST = os.getenv('SMTP_HOST', '')

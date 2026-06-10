@@ -7,7 +7,7 @@ import pytz
 from flask import current_app, g
 from werkzeug.security import generate_password_hash
 from mongodb_client import (
-    get_users_collection, get_admins_collection, 
+    get_users_collection, get_admins_collection,
     get_gestures_collection, get_translations_collection,
     get_letters_collection
 )
@@ -67,12 +67,15 @@ def init_mongodb(app):
     
     # Insert sample gestures
     sample_gestures = [
-        ('hello', 'Hello', 'Wabale', 'Wave hand in greeting motion'),
-        ('thank_you', 'Thank you', 'Asante', 'Hand over heart moving outward'),
+        ('hello', 'Hello', 'Oli otya', 'Wave hand in greeting motion'),
+        ('thank_you', 'Thank you', 'Weebale', 'Hand over heart moving outward'),
         ('yes', 'Yes', 'Yee', 'Head nod downward'),
         ('no', 'No', 'Nedda', 'Head shake side to side'),
-        ('good', 'Good', 'Nyo', 'Thumbs up gesture'),
+        ('good', 'Good', 'Kirungi', 'Thumbs up gesture'),
         ('bad', 'Bad', 'Bibi', 'Thumbs down gesture'),
+        ('how', 'How are you?', 'Oli otya?', 'Open hand question gesture'),
+        ('fine', 'I am fine', 'Gyendi', 'Calm open-hand response gesture'),
+        ('you', 'You', 'Ggwe', 'Pointing gesture for you'),
     ]
     
     for gesture_name, english, luganda, description in sample_gestures:
@@ -84,6 +87,15 @@ def init_mongodb(app):
                 'description': description,
                 'created_at': get_nairobi_time()
             })
+        else:
+            gestures.update_one(
+                {'gesture_name': gesture_name},
+                {'$set': {
+                    'english_meaning': english,
+                    'luganda_meaning': luganda,
+                    'description': description,
+                }}
+            )
     
     # Insert letter gestures for finger spelling (A-Z)
     alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -110,3 +122,8 @@ def close_mongo_or_sqlite(error):
         close_mongo_client(error)
     except:
         pass
+
+    sqlite_collection_db = getattr(g, '_sqlite_collection_db', None)
+    if sqlite_collection_db is not None:
+        sqlite_collection_db.close()
+        g._sqlite_collection_db = None

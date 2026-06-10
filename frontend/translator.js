@@ -120,12 +120,18 @@ document.addEventListener('DOMContentLoaded', function () {
     async function startCamera() {
         try {
             const facingMode = usingFrontCamera ? 'user' : 'environment';
-            mediaStream = await navigator.mediaDevices.getUserMedia({
+            const constraints = {
                 video: { facingMode: facingMode },
                 audio: false,
-            });
+            };
+
+            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 
             cameraFeed.srcObject = mediaStream;
+
+            cameraFeed.setAttribute('playsinline', '');
+            cameraFeed.setAttribute('webkit-playsinline', '');
+
             await cameraFeed.play();
 
             startCameraBtn.disabled = true;
@@ -135,26 +141,50 @@ document.addEventListener('DOMContentLoaded', function () {
             if (switchCameraBtn) switchCameraBtn.disabled = false;
             showSuccess('Camera started');
         } catch (error) {
-            showError(`Camera error: ${error.message}`);
+            console.error(error);
+            hideError();
+            const reason = buildCameraErrorReason(error);
+            showError(reason);
+        }
+
+        function buildCameraErrorReason(error) {
+            const isNotSecure = window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+            const parts = ['Camera error: ' + error.message];
+            if (isNotSecure) {
+                parts.push('Camera access requires HTTPS or localhost. Use HTTPS, or test on localhost.');
+            }
+            if (typeof DeviceCameraError === 'undefined' || !error.name) {
+                parts.push('If this device needs permission, allow camera access and try again.');
+            }
+            return parts.join('\n');
         }
     }
 
     async function switchCamera() {
+        const previousFacing = usingFrontCamera;
         if (mediaStream) {
             mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
         }
-        usingFrontCamera = !usingFrontCamera;
+        usingFrontCamera = !previousFacing;
         try {
             const facingMode = usingFrontCamera ? 'user' : 'environment';
-            mediaStream = await navigator.mediaDevices.getUserMedia({
+            const constraints = {
                 video: { facingMode: facingMode },
                 audio: false,
-            });
+            };
+
+            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
             cameraFeed.srcObject = mediaStream;
+            cameraFeed.setAttribute('playsinline', '');
+            cameraFeed.setAttribute('webkit-playsinline', '');
             await cameraFeed.play();
             showSuccess(`Switched to ${usingFrontCamera ? 'front' : 'back'} camera`);
         } catch (error) {
-            showError(`Failed to switch camera: ${error.message}`);
+            usingFrontCamera = previousFacing;
+            console.error(error);
+            hideError();
+            showError('Camera switch failed: ' + error.message);
         }
     }
 

@@ -14,22 +14,28 @@ from dotenv import load_dotenv
 import os
 import smtplib
 import base64
+import json
+import subprocess
+import sys
+import uuid
 from email.message import EmailMessage
 from pathlib import Path
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 # Load environment variables before importing Config because config.py reads
 # os.environ while defining the Config class.
 load_dotenv(Path(__file__).resolve().parent / '.env')
 load_dotenv()
 
-from config import Config, PROJECT_BACKEND_DIR
+from config import Config, PROJECT_BACKEND_DIR, PROJECT_ROOT_DIR
 from database import init_db, get_db, get_nairobi_time, close_mongo_or_sqlite
 from gesture_processor import GestureProcessor
 from mongodb_client import (
     get_admins_collection,
     get_gestures_collection,
     get_letters_collection,
+    get_tutorials_collection,
     get_translations_collection,
     get_users_collection,
 )
@@ -57,7 +63,20 @@ def socketio_event(event):
 
 FRONTEND_FOLDER = PROJECT_BACKEND_DIR.parent / 'frontend'
 VIDEO_FOLDER = app.config['LEARNING_VIDEO_FOLDER']
-os.makedirs(VIDEO_FOLDER, exist_ok=True)
+PROJECT_DIRS = [
+    app.config['DATASETS_DIR'],
+    app.config['GESTURE_DATASET_DIR'],
+    app.config['LETTER_DATASET_DIR'],
+    app.config['MOTION_DATASET_DIR'],
+    app.config['UPLOAD_FOLDER'],
+    app.config['TRAINING_UPLOAD_FOLDER'],
+    app.config['LEARNING_VIDEO_FOLDER'],
+    app.config['MODEL_DIR'],
+    str(PROJECT_ROOT_DIR / 'training'),
+    str(PROJECT_ROOT_DIR / 'docs'),
+]
+for directory in PROJECT_DIRS:
+    os.makedirs(directory, exist_ok=True)
 
 # Initialize database
 init_db(app)
@@ -122,30 +141,71 @@ def get_user_id_from_token(token):
         return None
 
 
+def to_object_id(raw_id):
+    """Convert Mongo ObjectId strings when possible while keeping SQLite ids usable."""
+    try:
+        from bson import ObjectId
+        return ObjectId(str(raw_id))
+    except Exception:
+        return raw_id
+
+
+def find_by_id(collection, raw_id):
+    """Find a row/document by its public id."""
+    return collection.find_one({'_id': to_object_id(raw_id)})
+
+
+def sanitize_label(value):
+    """Normalize a gesture or dataset label into a filesystem-safe slug."""
+    label = str(value or '').strip().lower().replace(' ', '_')
+    safe = ''.join(char for char in label if char.isalnum() or char in {'_', '-'})
+    return safe.strip('_-')
+
+
+def safe_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def get_free_translation_limit():
     """Return the free translation quota for basic accounts."""
     return int(app.config.get('FREE_TRANSLATION_LIMIT', 10))
 
 
+def get_guest_translation_limit():
+    """Return the free translation quota for guests."""
+    return int(app.config.get('GUEST_TRANSLATION_LIMIT', 3))
+
+
+def build_guest_subscription_payload(translations_used=0):
+    """Build a local guest quota snapshot."""
+    free_limit = get_guest_translation_limit()
+    used = max(safe_int(translations_used), 0)
+    return {
+        'user_id': None,
+        'tier': 'guest',
+        'translations_used': used,
+        'translation_limit': free_limit,
+        'translations_remaining': max(free_limit - used, 0),
+        'is_premium': False,
+        'can_translate': used < free_limit,
+        'requires_upgrade': used >= free_limit
+    }
+
+
 def get_user_row(user_id):
     """Fetch a user row with subscription details."""
-    from bson import ObjectId
     users = get_users_collection()
-    try:
-        object_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
-    except:
-        object_id = user_id
+    object_id = to_object_id(user_id)
     return users.find_one({'_id': object_id})
 
 
 def get_user_translation_count(user_id):
     """Count all successful translation events recorded for a user."""
-    from bson import ObjectId
     translations = get_translations_collection()
-    try:
-        object_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
-    except:
-        object_id = user_id
+    object_id = to_object_id(user_id)
     return int(translations.count_documents({'user_id': str(object_id)}))
 
 
@@ -179,8 +239,54 @@ def get_user_subscription_payload(user_id):
     return build_subscription_payload(user_row)
 
 
-def log_translation(detected_gesture, target_language, user_id=None, source_language='gesture'):
+def get_request_subscription(user_id, request_data):
+    """Validate the current actor can translate and return a subscription snapshot."""
+    if user_id:
+        return ensure_user_can_translate(user_id)
+
+    guest_used = safe_int((request_data or {}).get('guest_translations_used'), 0)
+    guest_subscription = build_guest_subscription_payload(guest_used)
+    if not guest_subscription['can_translate']:
+        return None, (
+            jsonify({
+                'error': 'Your guest translation limit has been reached. Create an account or upgrade to continue.',
+                'subscription': guest_subscription
+            }),
+            403
+        )
+
+    return guest_subscription, None
+
+
+def build_translation_response(detected_gesture, target_language='english', extra=None):
+    """Create the standard bilingual translation payload for API responses."""
+    translations = translator.translate_all(detected_gesture) or {}
+    language = (target_language or 'english').lower()
+    payload = {
+        'gesture': detected_gesture,
+        'english': translations.get('english'),
+        'luganda': translations.get('luganda'),
+        'translation': translations.get(language) or translations.get('english'),
+        'language': language,
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def log_translation(
+    detected_gesture,
+    target_language,
+    user_id=None,
+    source_language='gesture',
+    english_translation=None,
+    luganda_translation=None,
+    word=None,
+):
     """Persist translation event for history and analytics."""
+    if not user_id:
+        return
+
     translations = get_translations_collection()
     gestures = get_gestures_collection()
     
@@ -192,9 +298,13 @@ def log_translation(detected_gesture, target_language, user_id=None, source_lang
     
     translations.insert_one({
         'gesture_id': gesture_id,
+        'gesture': detected_gesture,
         'user_id': str(user_id) if user_id else None,
         'source_language': source_language,
         'target_language': target_language,
+        'english_translation': english_translation,
+        'luganda_translation': luganda_translation,
+        'word': word,
         'timestamp': get_nairobi_time()
     })
 
@@ -254,6 +364,256 @@ def send_welcome_login_email(recipient_email, username):
     return {'sent': True}
 
 
+def relative_path(path):
+    """Return a readable project-relative path."""
+    try:
+        return str(Path(path).resolve().relative_to(PROJECT_ROOT_DIR)).replace('\\', '/')
+    except Exception:
+        return str(path).replace('\\', '/')
+
+
+def active_file(primary_path, fallback_path=None):
+    """Return the preferred existing file path for a model/scaler."""
+    primary = Path(primary_path)
+    fallback = Path(fallback_path) if fallback_path else None
+    if primary.exists():
+        return primary
+    if fallback and fallback.exists():
+        return fallback
+    return primary
+
+
+def model_file_info(name, primary_model, fallback_model=None, scaler=None, fallback_scaler=None):
+    """Build active model metadata for admin/status screens."""
+    model_path = active_file(primary_model, fallback_model)
+    scaler_path = active_file(scaler, fallback_scaler) if scaler else None
+    exists = model_path.exists()
+    return {
+        'name': name,
+        'model_path': relative_path(model_path),
+        'scaler_path': relative_path(scaler_path) if scaler_path else None,
+        'exists': exists,
+        'last_trained': get_file_timestamp(model_path) if exists else None,
+        'version': str(int(model_path.stat().st_mtime)) if exists else None,
+        'size_bytes': model_path.stat().st_size if exists else 0,
+    }
+
+
+def get_file_timestamp(path):
+    """Format a file's modified time using the app timezone."""
+    if not path or not Path(path).exists():
+        return None
+
+    from datetime import datetime
+    import pytz
+
+    timezone = pytz.timezone('Africa/Nairobi')
+    return datetime.fromtimestamp(Path(path).stat().st_mtime, timezone).strftime('%Y-%m-%d %H:%M:%S')
+
+
+def get_active_models():
+    """Return the currently active prediction models."""
+    legacy_model_dir = Path(app.config['LEGACY_MODEL_DIR'])
+    return [
+        model_file_info(
+            'gesture',
+            app.config['STATIC_GESTURE_MODEL'],
+            legacy_model_dir / 'gesture_model.pkl',
+            app.config['STATIC_SCALER'],
+            legacy_model_dir / 'scaler.pkl',
+        ),
+        model_file_info(
+            'motion',
+            app.config['DYNAMICS_GESTURE_MODEL'],
+            legacy_model_dir / 'gesture_dynamics_model.pkl',
+            app.config['DYNAMICS_SCALER'],
+            legacy_model_dir / 'dynamics_scaler.pkl',
+        ),
+        model_file_info(
+            'letter',
+            app.config['LETTER_MODEL'],
+            legacy_model_dir / 'letter_model.pkl',
+            app.config['LETTER_SCALER'],
+            legacy_model_dir / 'letter_scaler.pkl',
+        ),
+    ]
+
+
+def count_sample_files(folder, extensions):
+    """Count files in one sample directory matching the given extensions."""
+    if not folder.exists():
+        return 0
+    return sum(1 for file_path in folder.iterdir() if file_path.is_file() and file_path.suffix.lower() in extensions)
+
+
+def latest_child_timestamp(folder):
+    """Return the newest modified timestamp from files in a folder."""
+    if not folder.exists():
+        return None
+    files = [file_path for file_path in folder.iterdir() if file_path.is_file()]
+    if not files:
+        return None
+    newest = max(files, key=lambda file_path: file_path.stat().st_mtime)
+    return get_file_timestamp(newest)
+
+
+def list_dataset_folders(dataset_path, dataset_type, extensions):
+    """Build per-gesture rows for a dataset path."""
+    base = Path(dataset_path)
+    rows = []
+    if not base.exists():
+        return rows
+
+    for child in sorted(base.iterdir(), key=lambda item: item.name.lower()):
+        if not child.is_dir():
+            continue
+        rows.append({
+            'gesture': child.name,
+            'dataset_type': dataset_type,
+            'dataset_path': relative_path(child),
+            'sample_count': count_sample_files(child, extensions),
+            'last_sample_at': latest_child_timestamp(child),
+        })
+    return rows
+
+
+def get_training_status_rows():
+    """Return status rows covering canonical and legacy datasets."""
+    rows = []
+    rows.extend(list_dataset_folders(app.config['GESTURE_DATASET_DIR'], 'gesture', {'.jpg', '.jpeg', '.png'}))
+    rows.extend(list_dataset_folders(app.config['LETTER_DATASET_DIR'], 'letter', {'.jpg', '.jpeg', '.png'}))
+    rows.extend(list_dataset_folders(app.config['MOTION_DATASET_DIR'], 'motion', {'.npy', '.json'}))
+    rows.extend(list_dataset_folders(app.config['LEGACY_GESTURE_DATASET_DIR'], 'legacy_gesture', {'.jpg', '.jpeg', '.png'}))
+    rows.extend(list_dataset_folders(app.config['LEGACY_MOTION_DATASET_DIR'], 'legacy_motion', {'.npy'}))
+
+    active_models = {model['name']: model for model in get_active_models()}
+    for row in rows:
+        model_key = 'motion' if 'motion' in row['dataset_type'] else 'letter' if row['dataset_type'] == 'letter' else 'gesture'
+        model = active_models.get(model_key, {})
+        row['model_used'] = model.get('model_path')
+        row['last_trained'] = model.get('last_trained')
+        row['model_status'] = 'Trained' if model.get('exists') else 'Not trained'
+        row['accuracy'] = None
+    return rows
+
+
+def get_training_map():
+    """Describe the end-to-end training path."""
+    return [
+        {
+            'dataset_folder': 'datasets/gestures/<gesture>',
+            'training_script': 'backend/train_gesture_model.py',
+            'model_file': 'models/gesture_model.pkl',
+            'prediction_endpoint': '/api/translate',
+            'frontend': 'frontend/translator.html',
+        },
+        {
+            'dataset_folder': 'datasets/gesture_motion/<gesture>',
+            'training_script': 'backend/train_gesture_dynamics.py',
+            'model_file': 'models/gesture_dynamics_model.pkl',
+            'prediction_endpoint': '/api/translate-motion',
+            'frontend': 'frontend/translator.html',
+        },
+        {
+            'dataset_folder': 'datasets/letters/<letter>',
+            'training_script': 'backend/train_gesture_model.py',
+            'model_file': 'models/letter_model.pkl',
+            'prediction_endpoint': '/api/recognize-letter',
+            'frontend': 'frontend/letters.html',
+        },
+    ]
+
+
+def next_sample_index(gesture_folder):
+    """Return the next numeric sample index for a gesture folder."""
+    existing_indexes = []
+    for file_path in gesture_folder.glob('sample_*.*'):
+        stem = file_path.stem.replace('sample_', '')
+        if stem.isdigit():
+            existing_indexes.append(int(stem))
+    return max(existing_indexes, default=-1) + 1
+
+
+def save_training_image(gesture_label, frame_base64):
+    """Save a base64 image into the canonical gesture dataset."""
+    gesture_folder = Path(app.config['GESTURE_DATASET_DIR']) / gesture_label
+    gesture_folder.mkdir(parents=True, exist_ok=True)
+    sample_id = next_sample_index(gesture_folder)
+    frame_data = frame_base64.split(',', 1)[1] if ',' in frame_base64 else frame_base64
+    frame_bytes = base64.b64decode(frame_data)
+    image_path = gesture_folder / f'sample_{sample_id}.jpg'
+    meta_path = gesture_folder / f'sample_{sample_id}.json'
+    image_path.write_bytes(frame_bytes)
+    meta_path.write_text(json.dumps({
+        'gesture': gesture_label,
+        'sample_id': sample_id,
+        'filename': image_path.name,
+        'captured_at': get_nairobi_time(),
+        'source': 'admin_panel',
+    }), encoding='utf-8')
+    return image_path
+
+
+def run_training_script(model_type):
+    """Run the training script for a model type and reload models when it succeeds."""
+    if model_type not in {'gesture', 'motion', 'letter'}:
+        return {'success': False, 'error': 'Invalid model type'}
+
+    script = 'train_gesture_dynamics.py' if model_type == 'motion' else 'train_gesture_model.py'
+    env = os.environ.copy()
+    if model_type == 'letter':
+        env['TRAINING_DATA_DIR'] = app.config['LETTER_DATASET_DIR']
+        env['TRAINING_MODEL_FILE'] = app.config['LETTER_MODEL']
+        env['TRAINING_SCALER_FILE'] = app.config['LETTER_SCALER']
+    elif model_type == 'motion':
+        env['TRAINING_DATA_DIR'] = app.config['MOTION_DATASET_DIR']
+        env['TRAINING_MODEL_FILE'] = app.config['DYNAMICS_GESTURE_MODEL']
+        env['TRAINING_SCALER_FILE'] = app.config['DYNAMICS_SCALER']
+    else:
+        env['TRAINING_DATA_DIR'] = app.config['GESTURE_DATASET_DIR']
+        env['TRAINING_MODEL_FILE'] = app.config['STATIC_GESTURE_MODEL']
+        env['TRAINING_SCALER_FILE'] = app.config['STATIC_SCALER']
+
+    result = subprocess.run(
+        [sys.executable, script],
+        cwd=PROJECT_BACKEND_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+
+    if result.returncode == 0:
+        gesture_processor.load_models()
+
+    return {
+        'success': result.returncode == 0,
+        'model_type': model_type,
+        'returncode': result.returncode,
+        'stdout': result.stdout[-4000:],
+        'stderr': result.stderr[-4000:],
+    }
+
+
+def serialize_tutorial(tutorial):
+    """Serialize a tutorial video row/document for JSON responses."""
+    if not tutorial:
+        return None
+
+    filename = tutorial.get('filename')
+    return {
+        'id': str(tutorial.get('_id')),
+        'title': tutorial.get('title'),
+        'description': tutorial.get('description') or '',
+        'access_level': tutorial.get('access_level') or 'free',
+        'order_index': safe_int(tutorial.get('order_index'), 0),
+        'filename': filename,
+        'url': tutorial.get('url') or (f'/videos/{filename}' if filename else ''),
+        'created_at': tutorial.get('created_at'),
+        'updated_at': tutorial.get('updated_at'),
+    }
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
@@ -273,10 +633,7 @@ def translate_gesture():
         gesture_data = data.get('gesture_image')
         target_language = data.get('target_language', 'english')
 
-        if not user_id:
-            return jsonify({'error': 'Authentication required to translate'}), 401
-
-        subscription, error_response = ensure_user_can_translate(user_id)
+        subscription, error_response = get_request_subscription(user_id, data)
         if error_response:
             return error_response
         
@@ -289,16 +646,21 @@ def translate_gesture():
         if not detected_gesture:
             return jsonify({'error': 'Could not detect gesture. Please try again.'}), 400
         
-        # Get translation
-        translation = translator.translate(detected_gesture, target_language)
-        log_translation(detected_gesture, target_language, user_id)
-        
-        return jsonify({
-            'gesture': detected_gesture,
-            'translation': translation,
-            'language': target_language,
-            'subscription': get_user_subscription_payload(user_id)
-        }), 200
+        response_payload = build_translation_response(detected_gesture, target_language)
+        log_translation(
+            detected_gesture,
+            target_language,
+            user_id,
+            english_translation=response_payload.get('english'),
+            luganda_translation=response_payload.get('luganda'),
+        )
+
+        response_payload['subscription'] = (
+            get_user_subscription_payload(user_id)
+            if user_id
+            else build_guest_subscription_payload(subscription['translations_used'] + 1)
+        )
+        return jsonify(response_payload), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -317,10 +679,7 @@ def translate_gesture_motion():
         gesture_frames = data.get('gesture_frames', [])
         target_language = data.get('target_language', 'english')
 
-        if not user_id:
-            return jsonify({'error': 'Authentication required to translate'}), 401
-
-        subscription, error_response = ensure_user_can_translate(user_id)
+        subscription, error_response = get_request_subscription(user_id, data)
         if error_response:
             return error_response
         
@@ -352,17 +711,25 @@ def translate_gesture_motion():
         if not detected_gesture:
             return jsonify({'error': 'Could not recognize gesture from motion. Please try again.'}), 400
         
-        # Get translation
-        translation = translator.translate(detected_gesture, target_language)
-        log_translation(detected_gesture, target_language, user_id)
-        
-        return jsonify({
-            'gesture': detected_gesture,
-            'translation': translation,
-            'language': target_language,
-            'frames_processed': len(gesture_frames),
-            'subscription': get_user_subscription_payload(user_id)
-        }), 200
+        response_payload = build_translation_response(
+            detected_gesture,
+            target_language,
+            {'frames_processed': len(gesture_frames)}
+        )
+        log_translation(
+            detected_gesture,
+            target_language,
+            user_id,
+            english_translation=response_payload.get('english'),
+            luganda_translation=response_payload.get('luganda'),
+        )
+
+        response_payload['subscription'] = (
+            get_user_subscription_payload(user_id)
+            if user_id
+            else build_guest_subscription_payload(subscription['translations_used'] + 1)
+        )
+        return jsonify(response_payload), 200
         
     except Exception as e:
         print(f"Error in translate_gesture_motion: {e}")
@@ -457,19 +824,12 @@ def get_gestures():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/gestures/<int:gesture_id>', methods=['GET'])
+@app.route('/api/gestures/<gesture_id>', methods=['GET'])
 def get_gesture(gesture_id):
     """Get specific gesture details"""
     try:
-        from bson import ObjectId
         gestures = get_gestures_collection()
-        
-        try:
-            object_id = ObjectId(gesture_id)
-        except:
-            object_id = gesture_id
-        
-        gesture = gestures.find_one({'_id': object_id})
+        gesture = find_by_id(gestures, gesture_id)
         
         if not gesture:
             return jsonify({'error': 'Gesture not found'}), 404
@@ -578,7 +938,7 @@ def admin_add_gesture():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/admin/gestures/<int:gesture_id>', methods=['PUT'])
+@app.route('/api/admin/gestures/<gesture_id>', methods=['PUT'])
 def admin_update_gesture(gesture_id):
     """Update gesture (Admin only)"""
     try:
@@ -588,16 +948,10 @@ def admin_update_gesture(gesture_id):
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
         
-        from bson import ObjectId
         gestures = get_gestures_collection()
-        
-        try:
-            object_id = ObjectId(gesture_id)
-        except:
-            object_id = gesture_id
-        
+
         gestures.update_one(
-            {'_id': object_id},
+            {'_id': to_object_id(gesture_id)},
             {'$set': {
                 'gesture_name': data.get('gesture_name'),
                 'english_meaning': data.get('english_meaning'),
@@ -611,7 +965,7 @@ def admin_update_gesture(gesture_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/admin/gestures/<int:gesture_id>', methods=['DELETE'])
+@app.route('/api/admin/gestures/<gesture_id>', methods=['DELETE'])
 def admin_delete_gesture(gesture_id):
     """Delete gesture (Admin only)"""
     try:
@@ -620,15 +974,9 @@ def admin_delete_gesture(gesture_id):
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
         
-        from bson import ObjectId
         gestures = get_gestures_collection()
-        
-        try:
-            object_id = ObjectId(gesture_id)
-        except:
-            object_id = gesture_id
-        
-        gestures.delete_one({'_id': object_id})
+
+        gestures.delete_one({'_id': to_object_id(gesture_id)})
         
         return jsonify({'success': True}), 200
     except Exception as e:
@@ -657,8 +1005,300 @@ def admin_stats():
             'total_gestures': total_gestures,
             'total_translations': total_translations,
             'total_users': total_users,
-            'logged_in_users': logged_in_users
+            'logged_in_users': logged_in_users,
+            'active_models': get_active_models()
         }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/translations', methods=['GET'])
+def admin_get_translations():
+    """Return recent translation history for admin analytics."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        translations = get_translations_collection()
+        users = get_users_collection()
+        rows = []
+        for item in translations.find({}).sort('timestamp', -1).limit(100):
+            user_doc = find_by_id(users, item.get('user_id')) if item.get('user_id') else None
+            rows.append({
+                'id': str(item.get('_id')),
+                'user': user_doc.get('username') if user_doc else 'Guest/Unknown',
+                'gesture': item.get('gesture') or item.get('word') or 'Spelled Word',
+                'english': item.get('english_translation'),
+                'luganda': item.get('luganda_translation'),
+                'source_language': item.get('source_language'),
+                'target_language': item.get('target_language'),
+                'timestamp': item.get('timestamp'),
+            })
+        return jsonify({'translations': rows}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/training/status', methods=['GET'])
+def admin_training_status():
+    """Return dataset counts, training map, and model status."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        return jsonify({
+            'datasets': get_training_status_rows(),
+            'models': get_active_models(),
+            'training_map': get_training_map(),
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/models/active', methods=['GET'])
+def admin_active_models():
+    """Return the active model versions used by prediction endpoints."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        return jsonify({'models': get_active_models()}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/train-model', methods=['POST'])
+def admin_run_training():
+    """Run a model training script from the admin panel."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        data = request.get_json(silent=True) or {}
+        result = run_training_script((data.get('model_type') or 'gesture').lower())
+        status_code = 200 if result.get('success') else 400
+        return jsonify(result), status_code
+    except subprocess.TimeoutExpired:
+        return jsonify({'success': False, 'error': 'Training timed out after 5 minutes'}), 504
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/training/upload-image', methods=['POST'])
+def admin_upload_training_image():
+    """Upload one gesture image into the canonical dataset."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        gesture_label = sanitize_label(request.form.get('gesture_label') or request.form.get('gesture_name'))
+        file = request.files.get('image')
+        if not gesture_label or not file:
+            return jsonify({'error': 'Gesture label and image are required'}), 400
+
+        gesture_folder = Path(app.config['GESTURE_DATASET_DIR']) / gesture_label
+        gesture_folder.mkdir(parents=True, exist_ok=True)
+        sample_id = next_sample_index(gesture_folder)
+        image_filename = f'sample_{sample_id}{Path(secure_filename(file.filename)).suffix.lower() or ".jpg"}'
+        image_path = gesture_folder / image_filename
+        file.save(image_path)
+        (gesture_folder / f'sample_{sample_id}.json').write_text(json.dumps({
+            'gesture': gesture_label,
+            'sample_id': sample_id,
+            'filename': image_filename,
+            'captured_at': get_nairobi_time(),
+            'source': 'admin_upload',
+        }), encoding='utf-8')
+
+        return jsonify({
+            'success': True,
+            'gesture_label': gesture_label,
+            'dataset_path': relative_path(gesture_folder),
+            'sample_file': image_filename,
+            'sample_count': count_sample_files(gesture_folder, {'.jpg', '.jpeg', '.png'}),
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/training/upload-video', methods=['POST'])
+def admin_upload_training_video():
+    """Upload a gesture video and extract frames into the canonical dataset when OpenCV is available."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        gesture_label = sanitize_label(request.form.get('gesture_label') or request.form.get('gesture_name'))
+        file = request.files.get('video')
+        if not gesture_label or not file:
+            return jsonify({'error': 'Gesture label and video are required'}), 400
+
+        upload_folder = Path(app.config['TRAINING_UPLOAD_FOLDER']) / gesture_label
+        upload_folder.mkdir(parents=True, exist_ok=True)
+        video_filename = f'{uuid.uuid4().hex[:8]}_{secure_filename(file.filename)}'
+        video_path = upload_folder / video_filename
+        file.save(video_path)
+
+        extracted_frames = 0
+        try:
+            import cv2
+
+            capture = cv2.VideoCapture(str(video_path))
+            gesture_folder = Path(app.config['GESTURE_DATASET_DIR']) / gesture_label
+            gesture_folder.mkdir(parents=True, exist_ok=True)
+            frame_index = 0
+            while extracted_frames < 30:
+                success, frame = capture.read()
+                if not success:
+                    break
+                if frame_index % 5 == 0:
+                    sample_id = next_sample_index(gesture_folder)
+                    frame_file = gesture_folder / f'sample_{sample_id}.jpg'
+                    cv2.imwrite(str(frame_file), frame)
+                    (gesture_folder / f'sample_{sample_id}.json').write_text(json.dumps({
+                        'gesture': gesture_label,
+                        'sample_id': sample_id,
+                        'filename': frame_file.name,
+                        'captured_at': get_nairobi_time(),
+                        'source': 'admin_video_upload',
+                        'source_video': relative_path(video_path),
+                    }), encoding='utf-8')
+                    extracted_frames += 1
+                frame_index += 1
+            capture.release()
+        except Exception as frame_error:
+            print(f'Video frame extraction skipped: {frame_error}')
+
+        return jsonify({
+            'success': True,
+            'gesture_label': gesture_label,
+            'video_path': relative_path(video_path),
+            'frames_extracted': extracted_frames,
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/training/samples/<gesture_label>/<filename>', methods=['DELETE'])
+def admin_delete_training_sample(gesture_label, filename):
+    """Delete a bad sample from the canonical gesture dataset."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        safe_gesture = sanitize_label(gesture_label)
+        safe_filename = secure_filename(filename)
+        gesture_folder = Path(app.config['GESTURE_DATASET_DIR']) / safe_gesture
+        sample_path = (gesture_folder / safe_filename).resolve()
+        if not str(sample_path).startswith(str(gesture_folder.resolve())):
+            return jsonify({'error': 'Invalid sample path'}), 400
+
+        deleted = False
+        if sample_path.exists() and sample_path.is_file():
+            sample_path.unlink()
+            deleted = True
+        meta_path = sample_path.with_suffix('.json')
+        if meta_path.exists() and meta_path.is_file():
+            meta_path.unlink()
+
+        return jsonify({'success': deleted, 'sample_count': count_sample_files(gesture_folder, {'.jpg', '.jpeg', '.png'})}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/tutorials', methods=['GET', 'POST'])
+def admin_tutorials():
+    """List or create tutorial videos."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        tutorials = get_tutorials_collection()
+
+        if request.method == 'GET':
+            rows = [serialize_tutorial(item) for item in tutorials.find({}).sort('order_index', 1)]
+            return jsonify({'tutorials': rows}), 200
+
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        access_level = request.form.get('access_level', 'free').strip().lower()
+        order_index = safe_int(request.form.get('order_index'), 0)
+        video_file = request.files.get('video')
+
+        if access_level not in {'free', 'premium'}:
+            return jsonify({'error': 'Invalid access level'}), 400
+        if not title:
+            return jsonify({'error': 'Video title is required'}), 400
+        if not video_file:
+            return jsonify({'error': 'Video file is required'}), 400
+
+        filename = f'{uuid.uuid4().hex[:8]}_{secure_filename(video_file.filename)}'
+        file_path = Path(VIDEO_FOLDER) / filename
+        video_file.save(file_path)
+
+        now = get_nairobi_time()
+        result = tutorials.insert_one({
+            'title': title,
+            'description': description,
+            'access_level': access_level,
+            'order_index': order_index,
+            'filename': filename,
+            'url': f'/videos/{filename}',
+            'created_at': now,
+            'updated_at': now,
+        })
+
+        return jsonify({
+            'success': True,
+            'tutorial': serialize_tutorial(tutorials.find_one({'_id': result.inserted_id})),
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/tutorials/<tutorial_id>', methods=['PUT', 'DELETE'])
+def admin_tutorial_detail(tutorial_id):
+    """Update or delete a tutorial video."""
+    try:
+        token = request.headers.get('Authorization')
+        if not is_valid_admin_token(token):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        tutorials = get_tutorials_collection()
+        tutorial = find_by_id(tutorials, tutorial_id)
+        if not tutorial:
+            return jsonify({'error': 'Tutorial not found'}), 404
+
+        if request.method == 'DELETE':
+            filename = tutorial.get('filename')
+            if filename:
+                file_path = (Path(VIDEO_FOLDER) / secure_filename(filename)).resolve()
+                if str(file_path).startswith(str(Path(VIDEO_FOLDER).resolve())) and file_path.exists():
+                    file_path.unlink()
+            tutorials.delete_one({'_id': to_object_id(tutorial_id)})
+            return jsonify({'success': True}), 200
+
+        data = request.get_json(silent=True) or {}
+        updates = {
+            'title': data.get('title', tutorial.get('title')),
+            'description': data.get('description', tutorial.get('description', '')),
+            'access_level': data.get('access_level', tutorial.get('access_level', 'free')),
+            'order_index': safe_int(data.get('order_index', tutorial.get('order_index', 0)), 0),
+            'updated_at': get_nairobi_time(),
+        }
+        if updates['access_level'] not in {'free', 'premium'}:
+            return jsonify({'error': 'Invalid access level'}), 400
+
+        tutorials.update_one({'_id': to_object_id(tutorial_id)}, {'$set': updates})
+        return jsonify({'success': True, 'tutorial': serialize_tutorial(find_by_id(tutorials, tutorial_id))}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -683,7 +1323,9 @@ def admin_get_users():
                     'last_login_at': user.get('last_login_at'),
                     'last_logout_at': user.get('last_logout_at'),
                     'is_online': bool(user.get('is_online', 0)),
-                    'has_logged_in': user.get('last_login_at') is not None
+                    'has_logged_in': user.get('last_login_at') is not None,
+                    'subscription_tier': (user.get('subscription_tier') or 'basic').lower(),
+                    'translations_used': get_user_translation_count(user.get('_id')),
                 } for user in users.find({}).sort('created_at', -1)
             ]
         }), 200
@@ -691,7 +1333,7 @@ def admin_get_users():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@app.route('/api/admin/users/<user_id>', methods=['DELETE'])
 def admin_delete_user(user_id):
     """Delete a user from admin panel."""
     try:
@@ -699,14 +1341,10 @@ def admin_delete_user(user_id):
         if not is_valid_admin_token(token):
             return jsonify({'error': 'Unauthorized'}), 401
         
-        from bson import ObjectId
         users = get_users_collection()
         translations = get_translations_collection()
-        
-        try:
-            object_id = ObjectId(user_id)
-        except:
-            object_id = user_id
+
+        object_id = to_object_id(user_id)
         
         if not users.find_one({'_id': object_id}):
             return jsonify({'error': 'User not found'}), 404
@@ -719,7 +1357,7 @@ def admin_delete_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/admin/users/<int:user_id>/password', methods=['PUT'])
+@app.route('/api/admin/users/<user_id>/password', methods=['PUT'])
 def admin_change_user_password(user_id):
     """Change a user's password from admin panel."""
     try:
@@ -732,13 +1370,9 @@ def admin_change_user_password(user_id):
         if len(new_password) < 6:
             return jsonify({'error': 'Password must be at least 6 characters'}), 400
         
-        from bson import ObjectId
         users = get_users_collection()
-        
-        try:
-            object_id = ObjectId(user_id)
-        except:
-            object_id = user_id
+
+        object_id = to_object_id(user_id)
         
         if not users.find_one({'_id': object_id}):
             return jsonify({'error': 'User not found'}), 404
@@ -1008,9 +1642,9 @@ def get_user_translations():
         
         translation_list = []
         for t in translations.find({'user_id': user_id}).sort('timestamp', -1).limit(50):
-            gesture_name = None
+            gesture_name = t.get('gesture')
             if t.get('gesture_id'):
-                gesture_doc = gestures.find_one({'_id': t['gesture_id']})
+                gesture_doc = gestures.find_one({'_id': to_object_id(t['gesture_id'])})
                 if gesture_doc:
                     gesture_name = gesture_doc.get('gesture_name')
             
@@ -1018,11 +1652,25 @@ def get_user_translations():
                 'id': str(t.get('_id', '')),
                 'gesture': gesture_name or 'Spelled Word',
                 'language': t.get('target_language'),
+                'english': t.get('english_translation'),
+                'luganda': t.get('luganda_translation'),
+                'word': t.get('word'),
                 'timestamp': t.get('timestamp'),
                 'source_language': t.get('source_language')
             })
         
         return jsonify({'translations': translation_list}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/tutorials', methods=['GET'])
+def get_tutorial_videos():
+    """Return tutorial videos managed by admin."""
+    try:
+        tutorials = get_tutorials_collection()
+        rows = [serialize_tutorial(item) for item in tutorials.find({}).sort('order_index', 1)]
+        return jsonify({'tutorials': rows}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1239,12 +1887,22 @@ def translate_word():
         
         word_lower = word.lower()
         
-        log_translation(None, target_language, user_id, 'spelled_word')
+        log_translation(
+            None,
+            target_language,
+            user_id,
+            'spelled_word',
+            english_translation=word,
+            luganda_translation=word,
+            word=word_lower,
+        )
         
         # Return word with indication that it was spelled out
         return jsonify({
             'word': word_lower,
             'word_uppercase': word.upper(),
+            'english': word,
+            'luganda': word,
             'letter_count': len(word),
             'source': 'finger_spelling',
             'target_language': target_language,
@@ -1278,28 +1936,19 @@ def admin_train_model():
         if len(frames) < 10:
             return jsonify({'error': 'Need at least 10 frames for training'}), 400
         
-        # Create training data directory if not exists
-        training_dir = Path(PROJECT_BACKEND_DIR) / 'training_data'
-        training_dir.mkdir(exist_ok=True)
-        
-        # Save frames as training data
-        import uuid
-        session_id = str(uuid.uuid4())[:8]
-        gesture_folder = training_dir / f"{gesture_label}_{session_id}"
-        gesture_folder.mkdir(exist_ok=True)
-        
+        gesture_label = sanitize_label(gesture_label or gesture_name)
+        if not gesture_label:
+            return jsonify({'error': 'Invalid gesture label'}), 400
+
         saved_count = 0
-        for idx, frame_base64 in enumerate(frames):
+        saved_files = []
+        for frame_base64 in frames:
             try:
-                frame_data = frame_base64.split(',', 1)[1] if ',' in frame_base64 else frame_base64
-                frame_bytes = base64.b64decode(frame_data)
-                
-                frame_path = gesture_folder / f"frame_{idx:03d}.jpg"
-                with open(frame_path, 'wb') as f:
-                    f.write(frame_bytes)
+                frame_path = save_training_image(gesture_label, frame_base64)
                 saved_count += 1
+                saved_files.append(relative_path(frame_path))
             except Exception as e:
-                print(f"Error saving frame {idx}: {e}")
+                print(f"Error saving training frame: {e}")
         
         # Add gesture to database if not exists
         gestures = get_gestures_collection()
@@ -1316,9 +1965,12 @@ def admin_train_model():
         
         return jsonify({
             'success': True,
-            'message': f'Training data saved: {saved_count} frames for gesture "{gesture_name}"',
+            'message': f'Training samples saved: {saved_count} frames for gesture "{gesture_name}"',
             'gesture_label': gesture_label,
-            'frames_saved': saved_count
+            'frames_saved': saved_count,
+            'dataset_path': relative_path(Path(app.config['GESTURE_DATASET_DIR']) / gesture_label),
+            'sample_files': saved_files[:10],
+            'training_status': get_training_status_rows(),
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

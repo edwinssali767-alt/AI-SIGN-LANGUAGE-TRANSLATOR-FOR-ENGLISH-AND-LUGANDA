@@ -11,6 +11,7 @@ from PIL import Image
 
 
 BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT_DIR = BASE_DIR.parent
 
 
 class GestureProcessor:
@@ -37,10 +38,22 @@ class GestureProcessor:
 
     def load_models(self):
         """Load trained gesture models and scalers from the backend models directory."""
-        static_model_path = BASE_DIR / 'models' / 'gesture_model.pkl'
-        static_scaler_path = BASE_DIR / 'models' / 'scaler.pkl'
-        motion_model_path = BASE_DIR / 'models' / 'gesture_dynamics_model.pkl'
-        motion_scaler_path = BASE_DIR / 'models' / 'dynamics_scaler.pkl'
+        static_model_path = self._first_existing(
+            PROJECT_ROOT_DIR / 'models' / 'gesture_model.pkl',
+            BASE_DIR / 'models' / 'gesture_model.pkl',
+        )
+        static_scaler_path = self._first_existing(
+            PROJECT_ROOT_DIR / 'models' / 'scaler.pkl',
+            BASE_DIR / 'models' / 'scaler.pkl',
+        )
+        motion_model_path = self._first_existing(
+            PROJECT_ROOT_DIR / 'models' / 'gesture_dynamics_model.pkl',
+            BASE_DIR / 'models' / 'gesture_dynamics_model.pkl',
+        )
+        motion_scaler_path = self._first_existing(
+            PROJECT_ROOT_DIR / 'models' / 'dynamics_scaler.pkl',
+            BASE_DIR / 'models' / 'dynamics_scaler.pkl',
+        )
 
         try:
             if static_model_path.exists() and static_scaler_path.exists():
@@ -64,6 +77,13 @@ class GestureProcessor:
 
         if self.static_model is None and self.motion_model is None:
             print('[WARN] No trained gesture models were loaded. Falling back to heuristics.')
+
+    def _first_existing(self, *paths):
+        """Return the first existing path, or the first candidate for status messages."""
+        for path in paths:
+            if path.exists():
+                return path
+        return paths[0]
 
     def _decode_image(self, gesture_data):
         """Decode a base64 image payload into a PIL image."""

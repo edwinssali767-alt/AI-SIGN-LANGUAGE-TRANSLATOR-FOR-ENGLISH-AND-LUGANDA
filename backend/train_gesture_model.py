@@ -25,12 +25,16 @@ except Exception as e:
     print(f"Warning: MediaPipe not properly configured, using image features: {e}")
 
 # Paths
-DATA_DIR = "gesture_dataset"
-MODEL_DIR = "models"
-MODEL_FILE = os.path.join(MODEL_DIR, "gesture_model.pkl")
-SCALER_FILE = os.path.join(MODEL_DIR, "scaler.pkl")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_DATA_DIR = PROJECT_ROOT / "datasets" / "gestures"
+LEGACY_DATA_DIR = Path(__file__).resolve().parent / "gesture_dataset"
+MODEL_DIR = Path(os.getenv("TRAINING_MODEL_DIR", PROJECT_ROOT / "models"))
+DATA_DIR = Path(os.getenv("TRAINING_DATA_DIR", DEFAULT_DATA_DIR))
+MODEL_FILE = Path(os.getenv("TRAINING_MODEL_FILE", MODEL_DIR / "gesture_model.pkl"))
+SCALER_FILE = Path(os.getenv("TRAINING_SCALER_FILE", MODEL_DIR / "scaler.pkl"))
 
-Path(MODEL_DIR).mkdir(exist_ok=True)
+MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+SCALER_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 def extract_landmarks_from_image(image_path):
     """Extract hand landmarks from image using MediaPipe"""
@@ -134,12 +138,20 @@ def load_training_data():
     """Load gesture samples from dataset by extracting landmarks from images"""
     X = []  # Features (hand landmarks)
     y = []  # Labels (gesture names)
-    
-    if not os.path.exists(DATA_DIR):
-        print(f"Error: {DATA_DIR} not found. Run collect_gesture_data.py first!")
+
+    data_dir = DATA_DIR
+    if (
+        (not data_dir.exists() or not any(path.is_dir() for path in data_dir.iterdir()))
+        and LEGACY_DATA_DIR.exists()
+        and any(path.is_dir() for path in LEGACY_DATA_DIR.iterdir())
+    ):
+        data_dir = LEGACY_DATA_DIR
+
+    if not data_dir.exists():
+        print(f"Error: {data_dir} not found. Run collect_gesture_data.py first!")
         return None, None
-    
-    gesture_dirs = [d for d in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, d))]
+
+    gesture_dirs = [d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d))]
     
     if not gesture_dirs:
         print(f"Error: No gesture directories found in {DATA_DIR}")
@@ -148,7 +160,7 @@ def load_training_data():
     print(f"Found gestures: {gesture_dirs}\n")
     
     for gesture in gesture_dirs:
-        gesture_path = os.path.join(DATA_DIR, gesture)
+        gesture_path = os.path.join(data_dir, gesture)
         samples = [f for f in os.listdir(gesture_path) if f.endswith('.jpg')]
         
         if not samples:
@@ -241,10 +253,10 @@ def train_model():
     
     # Save model
     print(f"\nSaving model to {MODEL_FILE}...")
-    joblib.dump(model, MODEL_FILE)
+    joblib.dump(model, str(MODEL_FILE))
     
     print(f"Saving scaler to {SCALER_FILE}...")
-    joblib.dump(scaler, SCALER_FILE)
+    joblib.dump(scaler, str(SCALER_FILE))
     
     print("\n" + "="*60)
     print("[OK] MODEL TRAINING COMPLETE!")
