@@ -36,7 +36,6 @@ let realtimeBtn = null;
 let targetLanguage = null;
 let usingFrontCamera = true;
 
-const feedbackElements = {};
 
 document.addEventListener('DOMContentLoaded', function () {
     const startCameraBtn = document.getElementById('startCameraBtn');
@@ -49,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const resultContainer = document.getElementById('resultContainer');
     const errorContainer = document.getElementById('errorContainer');
     const loadingIndicator = document.getElementById('loadingIndicator');
+    const feedbackContainer = document.getElementById('feedbackContainer');
     const newTranslationBtn = document.getElementById('newTranslationBtn');
     const closeErrorBtn = document.getElementById('closeErrorBtn');
     const detectedGesture = document.getElementById('detectedGesture');
@@ -496,12 +496,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function resetUI() {
         console.trace("RESET UI CALLED");
-
         frameBuffer = [];
         currentImageData = null;
-        if (gestureUpload) {
-            gestureUpload.value = '';
-        }
+        if (feedbackContainer) feedbackContainer.classList.add('hidden');
     }
 
     function showLoading(state) {
@@ -519,37 +516,31 @@ document.addEventListener('DOMContentLoaded', function () {
         errorContainer.classList.add('hidden');
     }
 
-    function showClearFeedbackBtn() {
-        if (feedbackElements.clearFeedbackBtn) {
-            feedbackElements.clearFeedbackBtn.classList.remove('hidden');
-        }
-    }
-
-    function hideClearFeedbackBtn() {
-        if (feedbackElements.clearFeedbackBtn) {
-            feedbackElements.clearFeedbackBtn.classList.add('hidden');
-        }
-    }
-
     function updateFeedbackDisplay(feedbackData) {
-        if (feedbackElements.currentSign) {
-            feedbackElements.currentSign.textContent = feedbackData.gesture ? formatGestureName(feedbackData.gesture) : '-';
+        const gestureValueEl = document.getElementById('gestureValue');
+        const confidenceValueEl = document.getElementById('confidenceValue');
+        const langValueEl = document.getElementById('langValue');
+
+        if (gestureValueEl) {
+            gestureValueEl.textContent = feedbackData.gesture ? formatGestureName(feedbackData.gesture) : '-';
         }
-        if (feedbackElements.confidenceLevel) {
+        if (confidenceValueEl) {
             const confidence = feedbackData.confidence;
-            feedbackElements.confidenceLevel.textContent = confidence ? `${Math.round(confidence * 100)}%` : '-';
+            confidenceValueEl.textContent = confidence ? `${Math.round(confidence * 100)}%` : '-';
         }
-        if (feedbackElements.translationSpeed) {
-            const speed = feedbackData.speed;
-            feedbackElements.translationSpeed.textContent = speed ? `${speed.toFixed(2)}ms` : '-';
+        if (langValueEl) {
+            langValueEl.textContent = feedbackData.language || '-';
         }
     }
 
     function clearFeedback() {
-        if (feedbackElements.currentSign) feedbackElements.currentSign.textContent = '-';
-        if (feedbackElements.confidenceLevel) feedbackElements.confidenceLevel.textContent = '-';
-        if (feedbackElements.translationSpeed) feedbackElements.translationSpeed.textContent = '-';
-        hideClearFeedbackBtn();
+        const gestureValueEl = document.getElementById('gestureValue');
+        const confidenceValueEl = document.getElementById('confidenceValue');
+        const langValueEl = document.getElementById('langValue');
+
+        if (gestureValueEl) gestureValueEl.textContent = '-';
+        if (confidenceValueEl) confidenceValueEl.textContent = '-';
+        if (langValueEl) langValueEl.textContent = '-';
     }
 
     function showSuccess(message) {
