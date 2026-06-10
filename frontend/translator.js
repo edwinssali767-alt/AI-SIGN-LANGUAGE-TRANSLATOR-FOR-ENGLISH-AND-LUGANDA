@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const learningLessons = document.getElementById('learningLessons');
     realtimeBtn = document.getElementById('realtimeBtn');
 
-    if (!startCameraBtn || !captureBtn || !stopCameraBtn || !detectedGesture || !translationResult || !translationLabel) {
+    if (!startCameraBtn || !captureBtn || !stopCameraBtn || !detectedGesture || !translationResult) {
         console.error('Translator page is missing required DOM elements');
         return;
     }
