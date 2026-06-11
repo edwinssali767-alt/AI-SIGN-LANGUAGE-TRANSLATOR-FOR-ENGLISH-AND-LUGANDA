@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sign-translator-v2';
+const CACHE_NAME = 'sign-translator-v3';
 const urlsToCache = [
   '/',
   '/index.html',

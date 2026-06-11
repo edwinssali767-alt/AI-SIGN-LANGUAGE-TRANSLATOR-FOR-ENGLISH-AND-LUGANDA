@@ -34,6 +34,9 @@ async function loadProfile() {
 
         const displayUsername = profileData.username || localStorage.getItem('username');
         const displayEmail = profileData.email || localStorage.getItem('email');
+        if (profileData.user_id) {
+            localStorage.setItem('user_id', profileData.user_id);
+        }
         document.getElementById('profileUsername').textContent = displayUsername;
         document.getElementById('profileEmail').textContent = displayEmail;
         document.getElementById('currentEmail').value = displayEmail;

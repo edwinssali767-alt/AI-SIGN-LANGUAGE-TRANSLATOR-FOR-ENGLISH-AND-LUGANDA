@@ -26,21 +26,6 @@ function getApiBase() {
     return `${window.location.origin}/api`;
 }
 
-async function checkServerStatus() {
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        const response = await fetch(`${API_BASE}/health`, {
-            method: 'GET',
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        return response.ok;
-    } catch (error) {
-        return false;
-    }
-}
-
 function hideAlert(element) {
     if (!element) return;
     element.textContent = '';
@@ -136,11 +121,6 @@ if (loginForm) {
         submitBtn.classList.add('loading');
 
         try {
-            const serverOk = await checkServerStatus();
-            if (!serverOk) {
-                throw new Error('Server unreachable');
-            }
-
             const response = await fetch(`${API_BASE}/user/login`, {
                 method: 'POST',
                 headers: {
@@ -173,7 +153,7 @@ if (loginForm) {
             }
         } catch (error) {
             console.error('Login error:', error);
-            if (error.message === 'Server unreachable' || error.message.includes('Failed to fetch') || !navigator.onLine) {
+            if ((error.message || '').includes('Failed to fetch') || !navigator.onLine) {
                 showAlert(errorDiv, `Cannot connect to server. API_BASE=${API_BASE}`);
             } else {
                 showAlert(errorDiv, 'Login failed. Please try again.');
@@ -225,11 +205,6 @@ if (signupForm) {
         submitBtn.classList.add('loading');
 
         try {
-            const serverOk = await checkServerStatus();
-            if (!serverOk) {
-                throw new Error('Server unreachable');
-            }
-
             const response = await fetch(`${API_BASE}/user/signup`, {
                 method: 'POST',
                 headers: {
@@ -270,7 +245,7 @@ if (signupForm) {
             }
         } catch (error) {
             console.error('Signup error:', error);
-            if (error.message === 'Server unreachable' || error.message.includes('Failed to fetch') || !navigator.onLine) {
+            if ((error.message || '').includes('Failed to fetch') || !navigator.onLine) {
                 showAlert(errorDiv, `Cannot connect to server. API_BASE=${API_BASE}`);
             } else {
                 showAlert(errorDiv, 'Signup failed. Please try again.');

@@ -126,19 +126,68 @@ def verify_password(stored_password, raw_password):
     return stored_password == raw_password
 
 
+def generate_simple_auth_id(users):
+    """Generate the next simple numeric user id for authentication responses."""
+    highest_id = 0
+    for user in users.find({}):
+        for raw_id in (user.get('auth_id'), user.get('_id'), user.get('id')):
+            auth_id = str(raw_id or '').strip()
+            if auth_id.isdigit():
+                highest_id = max(highest_id, int(auth_id))
+    return str(highest_id + 1)
+
+
+def ensure_user_auth_id(user_row):
+    """Ensure a user has a public simple auth id, without exposing database ids."""
+    if not user_row:
+        return None
+
+    auth_id = str(user_row.get('auth_id') or '').strip()
+    if auth_id:
+        return auth_id
+
+    users = get_users_collection()
+    for _ in range(10):
+        auth_id = generate_simple_auth_id(users)
+        try:
+            users.update_one(
+                {'_id': user_row['_id']},
+                {'$set': {'auth_id': auth_id}}
+            )
+            user_row['auth_id'] = auth_id
+            return auth_id
+        except Exception as error:
+            error_text = str(error).lower()
+            if 'duplicate' not in error_text and 'unique' not in error_text:
+                raise
+
+    return str(user_row.get('_id'))
+
+
+def get_public_user_id(user_row):
+    """Return the simple id the frontend should store for a user."""
+    if not user_row:
+        return None
+    return str(user_row.get('auth_id') or user_row.get('_id') or user_row.get('id'))
+
+
+def make_user_token(user_row):
+    """Build the simple non-JWT auth token used by this app."""
+    auth_id = ensure_user_auth_id(user_row)
+    return f"user_{auth_id}" if auth_id else None
+
+
 def is_valid_admin_token(token):
     """Validate simple admin token format."""
     return bool(token and token.startswith('admin_'))
 
 
 def get_user_id_from_token(token):
-    """Extract user id from user token, returning None when invalid."""
+    """Extract the simple user id from a non-JWT user token."""
     if not token or not token.startswith('user_'):
         return None
-    try:
-        return token.split('_')[1]  # Return as string for MongoDB ObjectId compatibility
-    except (IndexError, ValueError):
-        return None
+    user_id = token.split('_', 1)[1].strip()
+    return user_id or None
 
 
 def to_object_id(raw_id):
@@ -197,16 +246,51 @@ def build_guest_subscription_payload(translations_used=0):
 
 def get_user_row(user_id):
     """Fetch a user row with subscription details."""
+    if user_id is None:
+        return None
+
     users = get_users_collection()
-    object_id = to_object_id(user_id)
-    return users.find_one({'_id': object_id})
+    raw_id = str(user_id).strip()
+    if not raw_id:
+        return None
+
+    user = users.find_one({'auth_id': raw_id})
+    if user:
+        return user
+
+    return users.find_one({'_id': to_object_id(raw_id)})
+
+
+def get_user_identity_values(user_id):
+    """Return all ids that may identify a user in legacy and current records."""
+    values = set()
+    if user_id is not None and not isinstance(user_id, dict):
+        values.add(str(user_id))
+
+    user_row = user_id if isinstance(user_id, dict) else get_user_row(user_id)
+    if user_row:
+        if user_row.get('_id') is not None:
+            values.add(str(user_row.get('_id')))
+        if user_row.get('auth_id'):
+            values.add(str(user_row.get('auth_id')))
+
+    return [value for value in values if value]
+
+
+def user_ids_match(first_user_id, second_user_id):
+    """Compare public or legacy user ids for the same account."""
+    first_values = set(get_user_identity_values(first_user_id))
+    second_values = set(get_user_identity_values(second_user_id))
+    return bool(first_values and second_values and first_values.intersection(second_values))
 
 
 def get_user_translation_count(user_id):
     """Count all successful translation events recorded for a user."""
     translations = get_translations_collection()
-    object_id = to_object_id(user_id)
-    return int(translations.count_documents({'user_id': str(object_id)}))
+    identity_values = get_user_identity_values(user_id)
+    if not identity_values:
+        return 0
+    return int(translations.count_documents({'user_id': {'$in': identity_values}}))
 
 
 def build_subscription_payload(user_row):
@@ -215,8 +299,8 @@ def build_subscription_payload(user_row):
         return None
     
     tier = (user_row.get('subscription_tier') or 'basic').lower()
-    user_id = user_row.get('_id') or user_row.get('id')
-    translations_used = get_user_translation_count(user_id)
+    user_id = get_public_user_id(user_row)
+    translations_used = get_user_translation_count(user_row)
     free_limit = get_free_translation_limit()
     is_premium = tier == 'premium'
     can_translate = is_premium or translations_used < free_limit
@@ -296,10 +380,13 @@ def log_translation(
         if gesture_doc:
             gesture_id = str(gesture_doc['_id'])
     
+    user_row = get_user_row(user_id)
+    stored_user_id = get_public_user_id(user_row) or str(user_id)
+
     translations.insert_one({
         'gesture_id': gesture_id,
         'gesture': detected_gesture,
-        'user_id': str(user_id) if user_id else None,
+        'user_id': stored_user_id,
         'source_language': source_language,
         'target_language': target_language,
         'english_translation': english_translation,
@@ -1021,10 +1108,9 @@ def admin_get_translations():
             return jsonify({'error': 'Unauthorized'}), 401
 
         translations = get_translations_collection()
-        users = get_users_collection()
         rows = []
         for item in translations.find({}).sort('timestamp', -1).limit(100):
-            user_doc = find_by_id(users, item.get('user_id')) if item.get('user_id') else None
+            user_doc = get_user_row(item.get('user_id')) if item.get('user_id') else None
             rows.append({
                 'id': str(item.get('_id')),
                 'user': user_doc.get('username') if user_doc else 'Guest/Unknown',
@@ -1325,7 +1411,8 @@ def admin_get_users():
                     'is_online': bool(user.get('is_online', 0)),
                     'has_logged_in': user.get('last_login_at') is not None,
                     'subscription_tier': (user.get('subscription_tier') or 'basic').lower(),
-                    'translations_used': get_user_translation_count(user.get('_id')),
+                    'auth_id': get_public_user_id(user),
+                    'translations_used': get_user_translation_count(user),
                 } for user in users.find({}).sort('created_at', -1)
             ]
         }), 200
@@ -1344,13 +1431,13 @@ def admin_delete_user(user_id):
         users = get_users_collection()
         translations = get_translations_collection()
 
-        object_id = to_object_id(user_id)
+        user = find_by_id(users, user_id)
         
-        if not users.find_one({'_id': object_id}):
+        if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        translations.delete_many({'user_id': str(object_id)})
-        users.delete_one({'_id': object_id})
+        translations.delete_many({'user_id': {'$in': get_user_identity_values(user)}})
+        users.delete_one({'_id': user['_id']})
         
         return jsonify({'success': True, 'message': 'User deleted'}), 200
     except Exception as e:
@@ -1415,18 +1502,37 @@ def user_signup():
         if users.find_one({'username': username}) or users.find_one({'email': email}):
             return jsonify({'error': 'Username or email already exists'}), 409
         
-        # Create new user
-        user_doc = {
-            'username': username,
-            'email': email,
-            'password': generate_password_hash(password),
-            'created_at': now,
-            'last_login_at': now,
-            'is_online': 1,
-            'subscription_tier': 'basic'
-        }
-        result = users.insert_one(user_doc)
-        user_id = str(result.inserted_id)
+        # Create new user with a simple public auth id instead of exposing DB ids.
+        user_doc = None
+        result = None
+        for _ in range(10):
+            candidate_doc = {
+                'username': username,
+                'email': email,
+                'password': generate_password_hash(password),
+                'auth_id': generate_simple_auth_id(users),
+                'created_at': now,
+                'last_login_at': now,
+                'is_online': 1,
+                'subscription_tier': 'basic'
+            }
+            try:
+                result = users.insert_one(candidate_doc)
+                user_doc = candidate_doc
+                break
+            except Exception as error:
+                error_text = str(error).lower()
+                if (
+                    'auth_id' not in error_text
+                    or ('duplicate' not in error_text and 'unique' not in error_text)
+                ):
+                    raise
+
+        if not result or not user_doc:
+            return jsonify({'error': 'Could not create a user id. Please try again.'}), 500
+
+        user_doc['_id'] = result.inserted_id
+        user_id = get_public_user_id(user_doc)
         subscription = get_user_subscription_payload(user_id)
         
         return jsonify({
@@ -1434,7 +1540,7 @@ def user_signup():
             'user_id': user_id,
             'username': username,
             'email': email,
-            'token': f"user_{user_id}",
+            'token': make_user_token(user_doc),
             'message': 'Account created successfully',
             'subscription': subscription
         }), 201
@@ -1470,14 +1576,16 @@ def user_login():
         except Exception as email_error:
             email_info = {'sent': False, 'reason': str(email_error)}
         
-        subscription = get_user_subscription_payload(user['_id'])
+        ensure_user_auth_id(user)
+        user_id = get_public_user_id(user)
+        subscription = get_user_subscription_payload(user_id)
         
         return jsonify({
             'success': True,
-            'user_id': str(user['_id']),
+            'user_id': user_id,
             'username': user['username'],
             'email': user['email'],
-            'token': f"user_{user['_id']}",
+            'token': make_user_token(user),
             'welcome_email': email_info,
             'subscription': subscription
         }), 200
@@ -1495,16 +1603,13 @@ def user_logout():
         if not user_id:
             return jsonify({'error': 'Unauthorized'}), 401
         
-        from bson import ObjectId
         users = get_users_collection()
-        
-        try:
-            object_id = ObjectId(user_id)
-        except:
-            object_id = user_id
+        user = get_user_row(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
         users.update_one(
-            {'_id': object_id},
+            {'_id': user['_id']},
             {'$set': {'is_online': 0, 'last_logout_at': get_nairobi_time()}}
         )
         
@@ -1535,16 +1640,13 @@ def user_subscription():
         if requested_tier not in {'basic', 'premium'}:
             return jsonify({'error': 'Invalid subscription tier'}), 400
         
-        from bson import ObjectId
         users = get_users_collection()
-        
-        try:
-            current_user_oid = ObjectId(current_user_id)
-        except:
-            current_user_oid = current_user_id
+        current_user = get_user_row(current_user_id)
+        if not current_user:
+            return jsonify({'error': 'User not found'}), 404
         
         users.update_one(
-            {'_id': current_user_oid},
+            {'_id': current_user['_id']},
             {'$set': {'subscription_tier': requested_tier}}
         )
         
@@ -1564,24 +1666,18 @@ def get_user_profile(user_id):
         if not token_user_id:
             return jsonify({'error': 'Unauthorized'}), 401
         
-        if token_user_id != str(user_id):
+        if not user_ids_match(token_user_id, user_id):
             return jsonify({'error': 'Cannot access other user profiles'}), 403
         
-        from bson import ObjectId
-        users = get_users_collection()
-        
-        try:
-            object_id = ObjectId(user_id)
-        except:
-            object_id = user_id
-        
-        user = users.find_one({'_id': object_id})
+        user = get_user_row(user_id)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
+        ensure_user_auth_id(user)
+
         return jsonify({
-            'user_id': str(user['_id']),
+            'user_id': get_public_user_id(user),
             'username': user['username'],
             'email': user['email'],
             'created_at': user.get('created_at')
@@ -1597,27 +1693,24 @@ def update_user_profile(user_id):
         token = request.headers.get('Authorization')
         data = request.get_json(silent=True) or {}
         
-        if not token or not token.startswith('user_'):
+        token_user_id = get_user_id_from_token(token)
+        if not token_user_id:
             return jsonify({'error': 'Unauthorized'}), 401
         
         # Verify user is updating their own profile
-        token_user_id = token.split('_')[1]  # Keep as string for MongoDB
-        if token_user_id != str(user_id):
+        if not user_ids_match(token_user_id, user_id):
             return jsonify({'error': 'Cannot update other user profiles'}), 403
         
-        from bson import ObjectId
         users = get_users_collection()
-        
-        try:
-            object_id = ObjectId(user_id)
-        except:
-            object_id = user_id
+        user = get_user_row(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
         # Only allow updating email
         new_email = data.get('email')
         if new_email:
             users.update_one(
-                {'_id': object_id},
+                {'_id': user['_id']},
                 {'$set': {'email': new_email}}
             )
         
@@ -1632,16 +1725,15 @@ def get_user_translations():
     try:
         token = request.headers.get('Authorization')
         
-        if not token or not token.startswith('user_'):
+        user_id = get_user_id_from_token(token)
+        if not user_id:
             return jsonify({'error': 'Unauthorized'}), 401
-        
-        user_id = token.split('_')[1]  # Keep as string for MongoDB
         
         translations = get_translations_collection()
         gestures = get_gestures_collection()
         
         translation_list = []
-        for t in translations.find({'user_id': user_id}).sort('timestamp', -1).limit(50):
+        for t in translations.find({'user_id': {'$in': get_user_identity_values(user_id)}}).sort('timestamp', -1).limit(50):
             gesture_name = t.get('gesture')
             if t.get('gesture_id'):
                 gesture_doc = gestures.find_one({'_id': to_object_id(t['gesture_id'])})
@@ -1727,26 +1819,23 @@ def delete_user_account(user_id):
     try:
         token = request.headers.get('Authorization')
         
-        if not token or not token.startswith('user_'):
+        token_user_id = get_user_id_from_token(token)
+        if not token_user_id:
             return jsonify({'error': 'Unauthorized'}), 401
         
         # Verify user is deleting their own account
-        token_user_id = token.split('_')[1]
-        if token_user_id != str(user_id):
+        if not user_ids_match(token_user_id, user_id):
             return jsonify({'error': 'Cannot delete other user accounts'}), 403
         
-        from bson import ObjectId
         users = get_users_collection()
         translations = get_translations_collection()
-        
-        try:
-            object_id = ObjectId(user_id)
-        except:
-            object_id = user_id
+        user = get_user_row(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
         # Delete user and associated translations
-        translations.delete_many({'user_id': str(object_id)})
-        users.delete_one({'_id': object_id})
+        translations.delete_many({'user_id': {'$in': get_user_identity_values(user)}})
+        users.delete_one({'_id': user['_id']})
         
         return jsonify({'success': True, 'message': 'Account deleted'}), 200
     except Exception as e:
@@ -1836,13 +1925,8 @@ def spell_word():
             return jsonify({'error': 'Word is too long (max 50 letters)'}), 400
         
         # Log the spelling action
-        user_id = None
         token = request.headers.get('Authorization')
-        if token and token.startswith('user_'):
-            try:
-                user_id = int(token.split('_')[1])
-            except (IndexError, ValueError):
-                pass
+        user_id = get_user_id_from_token(token)
         
         return jsonify({
             'word': spelled_word,

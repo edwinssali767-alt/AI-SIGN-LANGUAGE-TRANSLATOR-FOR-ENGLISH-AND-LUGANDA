@@ -17,6 +17,7 @@ SQLITE_SCHEMAS = {
             username TEXT UNIQUE,
             email TEXT UNIQUE,
             password TEXT,
+            auth_id TEXT UNIQUE,
             created_at TEXT,
             last_login_at TEXT,
             last_logout_at TEXT,
@@ -114,6 +115,16 @@ class SQLiteCollection:
         schema = SQLITE_SCHEMAS.get(self.table_name)
         if schema:
             self.connection.execute(schema)
+            if self.table_name == 'users':
+                columns = {
+                    row['name']
+                    for row in self.connection.execute('PRAGMA table_info(users)').fetchall()
+                }
+                if 'auth_id' not in columns:
+                    self.connection.execute('ALTER TABLE users ADD COLUMN auth_id TEXT')
+                self.connection.execute(
+                    'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_auth_id ON users(auth_id)'
+                )
             self.connection.commit()
 
     def create_index(self, *args, **kwargs):
@@ -353,6 +364,7 @@ def init_mongodb_indexes():
     users = get_users_collection()
     users.create_index('username', unique=True)
     users.create_index('email', unique=True)
+    users.create_index('auth_id', unique=True, sparse=True)
     
     # Admin users indexes
     admin_users = get_admins_collection()
