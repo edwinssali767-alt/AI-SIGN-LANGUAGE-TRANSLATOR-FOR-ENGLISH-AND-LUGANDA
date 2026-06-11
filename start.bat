@@ -17,8 +17,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Navigate to backend directory
-cd backend
+set "ROOT_DIR=%~dp0"
+
+REM Navigate to backend directory for the local virtual environment
+cd /d "%ROOT_DIR%backend"
 
 REM Check if virtual environment exists
 if not exist venv (
@@ -47,13 +49,17 @@ echo.
 echo Backend running at: http://localhost:5000
 echo.
 
-start cmd /k python app.py
+cd /d "%ROOT_DIR%"
+start "Sign Language Backend" /D "%ROOT_DIR%" cmd /k "call backend\venv\Scripts\activate.bat && python app.py"
 
-REM Wait a moment for backend to start
-timeout /t 3 /nobreak
-
-REM Navigate back and open frontend
-cd ..
+REM Wait until the backend is ready to accept sign-in requests
+echo Waiting for backend to be ready...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$deadline=(Get-Date).AddSeconds(30); while((Get-Date) -lt $deadline){ try { $response=Invoke-WebRequest -Uri 'http://localhost:5000/api/health' -UseBasicParsing -TimeoutSec 2; if($response.StatusCode -eq 200){ exit 0 } } catch {}; Start-Sleep -Seconds 1 }; exit 1"
+if errorlevel 1 (
+    echo WARNING: Backend did not respond yet. Keep the backend window open and refresh the browser in a moment.
+) else (
+    echo Backend is ready.
+)
 
 echo.
 echo ========================================
@@ -61,15 +67,16 @@ echo  Opening Frontend in Browser...
 echo ========================================
 echo.
 
-REM Open frontend in default browser
-start frontend/index.html
+REM Open the frontend through Flask so auth and API use the same server
+start "" "http://localhost:5000/welcome.html"
 
 echo.
 echo Application started!
 echo.
-echo Frontend: Open frontend/index.html in your browser
-echo Admin Panel: http://localhost:8000/frontend/admin.html
-echo Gestures: http://localhost:8000/frontend/gestures.html
+echo Frontend: http://localhost:5000/welcome.html
+echo Sign In: http://localhost:5000/auth.html?mode=signin
+echo Admin Panel: http://localhost:5000/admin.html
+echo Gestures: http://localhost:5000/gestures.html
 echo.
 echo Default Admin Credentials:
 echo Username: admin

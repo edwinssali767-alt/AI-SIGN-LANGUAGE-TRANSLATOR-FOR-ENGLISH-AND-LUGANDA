@@ -11,7 +11,8 @@ from server import app as application, socketio
 app = application
 
 if __name__ == "__main__":
+    debug = bool(application.config.get("DEBUG", False))
     if socketio:
-        socketio.run(application, host="0.0.0.0", port=5000)
+        socketio.run(application, host="0.0.0.0", port=5000, debug=debug, use_reloader=False)
     else:
-        application.run(host="0.0.0.0", port=5000)
+        application.run(host="0.0.0.0", port=5000, debug=debug, use_reloader=False)

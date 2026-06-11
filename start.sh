@@ -16,8 +16,10 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# Navigate to backend directory
-cd backend
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Navigate to backend directory for the local virtual environment
+cd "$ROOT_DIR/backend"
 
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
@@ -41,23 +43,36 @@ echo "Backend running at: http://localhost:5000"
 echo ""
 
 # Start backend server in background
+cd "$ROOT_DIR"
 python app.py &
 BACKEND_PID=$!
 
-# Wait a moment for backend to start
-sleep 3
+# Wait until the backend is ready to accept sign-in requests
+echo "Waiting for backend to be ready..."
+BACKEND_READY=0
+for _ in $(seq 1 30); do
+    if python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health', timeout=2)" >/dev/null 2>&1; then
+        BACKEND_READY=1
+        break
+    fi
+    sleep 1
+done
 
-# Navigate back
-cd ..
+if [ "$BACKEND_READY" -eq 1 ]; then
+    echo "Backend is ready."
+else
+    echo "WARNING: Backend did not respond yet. Keep the backend process running and refresh the browser in a moment."
+fi
 
 echo ""
 echo "========================================"
 echo "  Frontend Ready"
 echo "========================================"
 echo ""
-echo "Frontend: Open frontend/index.html in your browser"
-echo "Admin Panel: frontend/admin.html"
-echo "Gestures: frontend/gestures.html"
+echo "Frontend: http://localhost:5000/welcome.html"
+echo "Sign In: http://localhost:5000/auth.html?mode=signin"
+echo "Admin Panel: http://localhost:5000/admin.html"
+echo "Gestures: http://localhost:5000/gestures.html"
 echo ""
 echo "Default Admin Credentials:"
 echo "Username: admin"
