@@ -69,7 +69,9 @@
 
                 <div class="history-badge" id="historyBadge" aria-live="polite">
                     Translation history: <strong id="historyCountValue">0</strong>
-                    <span id="translationLabel" style="margin-left: 15px; font-weight: 600; color: var(--primary);">Translation (English):</span>
+                    <span id="translationLabel"
+                        style="margin-left: 15px; font-weight: 600; color: var(--primary);">Translation
+                        (English):</span>
                 </div>
 
                 <!-- Language Selection -->
@@ -81,7 +83,7 @@
                     </select>
                 </div>
 
-<!-- Camera/Upload Section -->
+                <!-- Camera/Upload Section -->
                 <div class="gesture-input">
                     <div class="camera-container">
                         <div class="camera-section">
@@ -89,209 +91,197 @@
                             <canvas id="photoCanvas" style="display:none;"></canvas>
                         </div>
 
-                        <div class="right-panel">
-                            <div class="realtime-translation-panel">
-                                <h4>Live Translation</h4>
-                                <div class="translation-display">
-                                    <div class="translation-item">
-                                        <span class="translation-label">English:</span>
-                                        <span id="liveEnglishTranslation" class="translation-value">-</span>
-                                    </div>
-                                    <div class="translation-item">
-                                        <span class="translation-label">Luganda:</span>
-                                        <span id="liveLugandaTranslation" class="translation-value">-</span>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="controls">
-                                <button type="button" id="startCameraBtn" class="btn btn-primary">Start Camera</button>
-                                <button type="button" id="realtimeBtn" class="btn btn-secondary" disabled>Real-time</button>
-                                <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture</button>
-                                <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop</button>
-                                <button type="button" id="switchCameraBtn" class="btn btn-secondary" disabled>Switch</button>
-                            </div>
+
+                        <div class="controls">
+                            <button type="button" id="startCameraBtn" class="btn btn-primary">Start Camera</button>
+                            <button type="button" id="realtimeBtn" class="btn btn-secondary" disabled>Real-time</button>
+                            <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture</button>
+                            <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop</button>
+                            <button type="button" id="switchCameraBtn" class="btn btn-secondary"
+                                disabled>Switch</button>
                         </div>
                     </div>
                 </div>
+    </div>
 
-                <div class="bottom-panels">
-                    <!-- Result Display -->
-                    <div id="resultContainer" class="result-container hidden">
-                        <div class="result-card">
-                            <h3>Translation Result</h3>
-                            <div class="result-image">
-                                <img id="resultImage" src="" alt="Captured gesture">
-                            </div>
-                            <div class="translation-result">
-                                <div class="result-item">
-                                    <span class="label">Detected:</span>
-                                    <span id="detectedGesture" class="value">-</span>
-                                </div>
-                                <div class="result-item">
-                                    <span class="label">Translation:</span>
-                                    <span id="translationResult" class="value translation">-</span>
-                                </div>
-                            </div>
-                            <button type="button" id="newTranslationBtn" class="btn btn-primary">Try Another</button>
-                        </div>
+    <div class="bottom-panels">
+        <!-- Result Display -->
+        <div id="resultContainer" class="result-container hidden">
+            <div class="result-card">
+                <h3>Translation Result</h3>
+                <div class="result-image">
+                    <img id="resultImage" src="" alt="Captured gesture">
+                </div>
+                <div class="translation-result">
+                    <div class="result-item">
+                        <span class="label">Detected:</span>
+                        <span id="detectedGesture" class="value">-</span>
                     </div>
-
-                    <!-- Feedback Display -->
-                    <div id="feedbackContainer" class="translation-feedback hidden">
-                        <h4 class="feedback-title">Translation Feedback</h4>
-                        <div class="feedback-content">
-                            <div class="feedback-item">
-                                <span class="feedback-label">Confidence</span>
-                                <span id="confidenceValue" class="feedback-value">-</span>
-                            </div>
-                            <div class="feedback-item">
-                                <span class="feedback-label">Gesture</span>
-                                <span id="gestureValue" class="feedback-value">-</span>
-                            </div>
-                            <div class="feedback-item">
-                                <span class="feedback-label">Language</span>
-                                <span id="langValue" class="feedback-value">-</span>
-                            </div>
-                        </div>
+                    <div class="result-item">
+                        <span class="label">Translation:</span>
+                        <span id="translationResult" class="value translation">-</span>
                     </div>
                 </div>
+                <button type="button" id="newTranslationBtn" class="btn btn-primary">Try Another</button>
+            </div>
+        </div>
 
-                <!-- Error Display -->
-                <div id="errorContainer" class="error-container hidden">
-                    <div class="error-message">
-                        <span id="errorMessage"></span>
-                        <button id="closeErrorBtn" class="btn-close">✕</button>
-                    </div>
+        <!-- Feedback Display -->
+        <div id="feedbackContainer" class="translation-feedback hidden">
+            <h4 class="feedback-title">Translation Feedback</h4>
+            <div class="feedback-content">
+                <div class="feedback-item">
+                    <span class="feedback-label">Confidence</span>
+                    <span id="confidenceValue" class="feedback-value">-</span>
                 </div>
-
-                <!-- Loading Indicator -->
-                <div id="loadingIndicator" class="loading hidden">
-                    <div class="spinner"></div>
-                    <p>Processing gesture...</p>
+                <div class="feedback-item">
+                    <span class="feedback-label">Gesture</span>
+                    <span id="gestureValue" class="feedback-value">-</span>
                 </div>
-
-
-        </main>
-
-        <!-- Subscription Limit Modal -->
-        <!-- Subscription Limit Modal -->
-        <div id="subscriptionModal" class="subscription-modal">
-
-            <div class="subscription-content">
-
-                <h2>Translation Limit Reached</h2>
-
-                <p>
-                    You've used all 10 free translations on the Basic Plan.
-                    Upgrade to Premium for unlimited translations.
-                </p>
-
-                <div class="subscription-plan">
-
-                    <h3>Premium Plan - UGX 15,000/month</h3>
-
-                    <ul>
-                        <li>Unlimited translations</li>
-                        <li>Letter Capture</li>
-                        <li>Gesture Library</li>
-                        <li>Priority Support</li>
-                    </ul>
-
+                <div class="feedback-item">
+                    <span class="feedback-label">Language</span>
+                    <span id="langValue" class="feedback-value">-</span>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="subscription-actions">
+    <!-- Error Display -->
+    <div id="errorContainer" class="error-container hidden">
+        <div class="error-message">
+            <span id="errorMessage"></span>
+            <button id="closeErrorBtn" class="btn-close">✕</button>
+        </div>
+    </div>
 
-                    <button type="button" onclick="goToUpgrade()" class="btn">
-                        Upgrade Now
-                    </button>
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Processing gesture...</p>
+    </div>
 
-                    <button type="button" onclick="closeSubscriptionModal()" class="btn btn-secondary">
-                        Maybe Later
-                    </button>
 
-                </div>
+    </main>
+
+    <!-- Subscription Limit Modal -->
+    <!-- Subscription Limit Modal -->
+    <div id="subscriptionModal" class="subscription-modal">
+
+        <div class="subscription-content">
+
+            <h2>Translation Limit Reached</h2>
+
+            <p>
+                You've used all 10 free translations on the Basic Plan.
+                Upgrade to Premium for unlimited translations.
+            </p>
+
+            <div class="subscription-plan">
+
+                <h3>Premium Plan - UGX 15,000/month</h3>
+
+                <ul>
+                    <li>Unlimited translations</li>
+                    <li>Letter Capture</li>
+                    <li>Gesture Library</li>
+                    <li>Priority Support</li>
+                </ul>
+
+            </div>
+
+            <div class="subscription-actions">
+
+                <button type="button" onclick="goToUpgrade()" class="btn">
+                    Upgrade Now
+                </button>
+
+                <button type="button" onclick="closeSubscriptionModal()" class="btn btn-secondary">
+                    Maybe Later
+                </button>
 
             </div>
 
         </div>
 
+    </div>
 
 
-        <script src="theme.js"></script>
-        <script src="auth.js"></script>
-        <script src="translator.js?v=999"></script>
-        <script>
-            function goToUpgrade() {
-                window.location.href = 'pricing.html';
+
+    <script src="theme.js"></script>
+    <script src="auth.js"></script>
+    <script src="translator.js?v=999"></script>
+    <script>
+        function goToUpgrade() {
+            window.location.href = 'pricing.html';
+        }
+
+        function closeSubscriptionModal() {
+            document.getElementById('subscriptionModal').style.display = 'none';
+        }
+
+        function showSubscriptionModal() {
+            const modal = document.getElementById('subscriptionModal');
+            modal.style.display = 'flex';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const closeMenuBtn = document.querySelector('.close-menu');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function () {
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                });
             }
 
-            function closeSubscriptionModal() {
-                document.getElementById('subscriptionModal').style.display = 'none';
+            if (closeMenuBtn) {
+                closeMenuBtn.addEventListener('click', function () {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
             }
 
-            function showSubscriptionModal() {
-                const modal = document.getElementById('subscriptionModal');
-                modal.style.display = 'flex';
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', function () {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                });
             }
-            
-            document.addEventListener('DOMContentLoaded', function() {
-                const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-                const closeMenuBtn = document.querySelector('.close-menu');
-                const mobileMenu = document.getElementById('mobileMenu');
-                const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
-                
-                if (mobileMenuBtn) {
-                    mobileMenuBtn.addEventListener('click', function() {
-                        mobileMenu.classList.add('active');
-                        mobileMenuOverlay.classList.add('active');
-                    });
+
+            const mobileThemeSelector = document.getElementById('mobileThemeSelector');
+            const themeSelector = document.getElementById('themeSelector');
+
+            if (mobileThemeSelector && themeSelector) {
+                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
+                mobileThemeSelector.addEventListener('change', function () {
+                    themeSelector.value = this.value;
+                    document.documentElement.setAttribute('data-theme', this.value);
+                    localStorage.setItem('theme', this.value);
+                });
+            }
+
+            const mobileAuthLink = document.getElementById('mobileAuthLink');
+            const profileNav = document.getElementById('profileNav');
+
+            if (mobileAuthLink && profileNav) {
+                if (profileNav.style.display !== 'none') {
+                    mobileAuthLink.href = 'profile.html';
+                    mobileAuthLink.textContent = 'Profile';
                 }
-                
-                if (closeMenuBtn) {
-                    closeMenuBtn.addEventListener('click', function() {
-                        mobileMenu.classList.remove('active');
-                        mobileMenuOverlay.classList.remove('active');
-                    });
-                }
-                
-                if (mobileMenuOverlay) {
-                    mobileMenuOverlay.addEventListener('click', function() {
-                        mobileMenu.classList.remove('active');
-                        mobileMenuOverlay.classList.remove('active');
-                    });
-                }
-                
-                const mobileThemeSelector = document.getElementById('mobileThemeSelector');
-                const themeSelector = document.getElementById('themeSelector');
-                
-                if (mobileThemeSelector && themeSelector) {
-                    mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
-                    mobileThemeSelector.addEventListener('change', function() {
-                        themeSelector.value = this.value;
-                        document.documentElement.setAttribute('data-theme', this.value);
-                        localStorage.setItem('theme', this.value);
-                    });
-                }
-                
-                const mobileAuthLink = document.getElementById('mobileAuthLink');
-                const profileNav = document.getElementById('profileNav');
-                
-                if (mobileAuthLink && profileNav) {
-                    if (profileNav.style.display !== 'none') {
-                        mobileAuthLink.href = 'profile.html';
-                        mobileAuthLink.textContent = 'Profile';
-                    }
-                }
-                
-                document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
-                    link.addEventListener('click', function() {
-                        mobileMenu.classList.remove('active');
-                        mobileMenuOverlay.classList.remove('active');
-                    });
+            }
+
+            document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+                link.addEventListener('click', function () {
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
                 });
             });
-        </script>
+        });
+    </script>
 </body>
 
 </html>
