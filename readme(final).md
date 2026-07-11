@@ -1,7 +1,7 @@
 Project title: AI Sign Language TRANSLATOR FOR ENGLISH AND LUGANDA
-Problem
+Problem:
 Despite the official recognition of sign language in Uganda and the efforts made by The Uganda National Association of the Deaf (UNAD) to promote sign language education and interpreter training, communication barriers between deaf and hearing individuals remained a significant challenge.
- Solution
+ Solution:
  To address these challenges, Group 41 developed an AI Sign Language Translator for English and Luganda. The system was designed to provide an affordable, accessible and technology-driven solution that facilitates real-time communication between deaf and hearing learners thereby promoting inclusion and improving access to education and essential services.
 
 System Requirements
