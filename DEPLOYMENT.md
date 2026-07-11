@@ -1,14 +1,18 @@
-# Sign Language Translator - Installation & Deployment Guide
+Project title: AI Sign Language TRANSLATOR FOR ENGLISH AND LUGANDA
+Problem
+Despite the official recognition of sign language in Uganda and the efforts made by The Uganda National Association of the Deaf (UNAD) to promote sign language education and interpreter training, communication barriers between deaf and hearing individuals remained a significant challenge.
+ Solution
+ To address these challenges, Group 41 developed an AI Sign Language Translator for English and Luganda. The system was designed to provide an affordable, accessible and technology-driven solution that facilitates real-time communication between deaf and hearing learners thereby promoting inclusion and improving access to education and essential services.
 
-## 📦 System Requirements
+System Requirements
 
-- **Operating System**: Windows 10+, macOS 10.12+, Linux (Ubuntu 18.04+)
-- **Python**: 3.7 or higher
-- **Browser**: Chrome, Firefox, Safari, or Edge (latest version)
-- **RAM**: 2GB minimum (4GB recommended)
-- **Disk Space**: 500MB
+- Operating System: Windows 10+, macOS 10.12+, Linux (Ubuntu 18.04+)
+- Python: 3.7 or higher
+- Browser: Chrome, Firefox, Safari, or Edge (latest version)
+- RAM: 2GB minimum (4GB recommended)
+- Disk Space: 500MB
 
-## 🔍 Pre-Installation Checklist
+ Pre-Installation Checklist
 
 ```
 ☐ Python 3.7+ installed
@@ -19,18 +23,18 @@
 ☐ All project files downloaded
 ```
 
-## 🚀 Installation Steps
+ Installation Steps
 
-### Step 1: Verify Installation Package
+ Step 1: Verify Installation Package
 
 Run the verification script:
 
-**Windows:**
+Windows:
 ```bash
 double-click verify.bat
 ```
 
-**Linux/Mac:**
+Linux/Mac:
 ```bash
 chmod +x verify.sh
 ./verify.sh
@@ -38,9 +42,9 @@ chmod +x verify.sh
 
 All files should show ✓ (checkmark)
 
-### Step 2: Install Python Dependencies
+Step 2: Install Python Dependencies
 
-**Windows:**
+Windows:
 ```bash
 cd backend
 python -m venv venv
@@ -49,7 +53,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-**Linux/Mac:**
+Linux/Mac:
 ```bash
 cd backend
 python3 -m venv venv
@@ -58,11 +62,11 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### Step 3: Initialize Database
+ Step 3: Initialize Database
 
 The database is automatically created on first backend run. If you need to reset:
 
-**Windows:**
+Windows:
 ```bash
 cd backend
 del sign_translator.db
@@ -70,7 +74,7 @@ cd ..
 python app.py
 ```
 
-**Linux/Mac:**
+Linux/Mac:
 ```bash
 cd backend
 rm sign_translator.db
@@ -78,24 +82,24 @@ cd ..
 python3 app.py
 ```
 
-## 🏃 Running the Application
+ Running the Application
 
-### Automatic Startup (Recommended)
+Automatic Startup (Recommended)
 
-**Windows:**
+Windows:
 ```bash
 double-click start.bat
 ```
 
-**Linux/Mac:**
+Linux/Mac:
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
 
-### Manual Startup
+ Manual Startup
 
-#### Terminal 1 - Backend:
+ Terminal 1 - Backend:
 ```bash
 cd backend
 # Activate venv first
@@ -107,7 +111,7 @@ python app.py
 
 Wait for: `Running on http://127.0.0.1:5000`
 
-#### Terminal 2 - Frontend:
+Terminal 2 - Frontend:
 ```bash
 cd frontend
 python -m http.server 8000
@@ -116,61 +120,61 @@ python -m http.server 8000
 
 Wait for: `Serving HTTP on 0.0.0.0 port 8000`
 
-#### Browser:
+ Browser:
 Open: `http://localhost:8000/index.html`
 
-## 📋 First Time Setup
+ First Time Setup
 
-1. **Backend starts and creates database**
+1. Backend starts and creates database
    - Initial gestures are populated
    - Admin user created (admin/admin123)
 
-2. **Enter admin panel**
+2. Enter admin panel
    - Go to: `http://localhost:8000/admin.html`
    - Login: admin / admin123
 
-3. **Add test data (optional)**
+3. Add test data (optional)
    - This step is automatic
    - Sample gestures are pre-loaded
 
-4. **Test translator**
+4. Test translator
    - Go to: `http://localhost:8000/index.html`
    - Start camera or upload image
    - Verify translation works
 
-## 🔐 Security Configuration
+ Security Configuration
 
-### Change Default Admin Password
+Change Default Admin Password
 
 1. Go to Admin Panel
 2. Login with admin/admin123
 3. Admin credentials stored in database
 
-### For Production Deployment
+For Production Deployment
 
-1. **Change SECRET_KEY in backend/config.py:**
+1. Change SECRET_KEY in backend/config.py:
    ```python
    SECRET_KEY = 'your-new-secret-key-change-this'
    ```
 
-2. **Set DEBUG to False:**
+2. Set DEBUG to False:
    ```python
    DEBUG = False
    ```
 
-3. **Use HTTPS:**
+3. Use HTTPS:
    - Obtain SSL certificate
    - Configure web server (Nginx/Apache)
 
-4. **Set up reverse proxy:**
+4. Set up reverse proxy:
    - Example Nginx config for backend
    - Example Apache config for frontend
 
-## 📊 Database Management
+ Database Management
 
-### Access Database
+Access Database
 
-**Using Python:**
+Using Python:
 ```python
 import sqlite3
 conn = sqlite3.connect('backend/sign_translator.db')
@@ -178,37 +182,36 @@ cursor = conn.cursor()
 cursor.execute('SELECT * FROM gestures')
 print(cursor.fetchall())
 ```
-
-**Using DB Browser:**
+Using DB Browser:
 - Download: https://sqlitebrowser.org
 - Open: `sign_translator.db`
 - Browse tables and data
 
-### Backup Database
+Backup Database
 
 ```bash
-# Windows
+ Windows
 copy backend\sign_translator.db backup\sign_translator_backup.db
 
-# Linux/Mac
+ Linux/Mac
 cp backend/sign_translator.db backup/sign_translator_backup.db
 ```
 
-### Reset Database
+Reset Database
 
 ```bash
 # Windows
 del backend\sign_translator.db
 
-# Linux/Mac
+ Linux/Mac
 rm backend/sign_translator.db
 ```
 
 Backend will recreate on next run.
 
-## 🌐 Network Access
+ Network Access
 
-### Local Area Network (LAN)
+ Local Area Network (LAN)
 
 1. Find your IP:
    - Windows: `ipconfig` → IPv4 Address
@@ -221,7 +224,7 @@ Backend will recreate on next run.
 
 3. Everyone on same WiFi can access
 
-### Internet Access (Not Recommended Without Security)
+ Internet Access (Not Recommended Without Security)
 
 Would require:
 - Public IP address
@@ -230,9 +233,9 @@ Would require:
 - Firewall configuration
 - User authentication
 
-## 🛠️ Troubleshooting
+Troubleshooting
 
-### Python Not Found
+ Python Not Found
 ```bash
 # Check Python installation
 python --version
@@ -244,15 +247,14 @@ python3 --version
 # Mac/Linux: Add to .bash_profile or .bashrc
 ```
 
-### Virtual Environment Issues
+ Virtual Environment Issues
 ```bash
 # Recreate virtual environment
 rm -rf backend/venv
 python -m venv backend/venv
 # Activate and install
 ```
-
-### Port Already in Use
+ Port Already in Use
 ```bash
 # Windows - Find process using port
 netstat -ano | findstr :5000
@@ -267,7 +269,7 @@ taskkill /PID [PID] /F
 kill -9 [PID]
 ```
 
-### Database Corruption
+ Database Corruption
 ```bash
 # Delete and recreate
 rm backend/sign_translator.db
@@ -275,14 +277,14 @@ python app.py
 # For deployment/hosting: gunicorn -w 1 -b 0.0.0.0:$PORT wsgi:app
 ```
 
-### CORS Issues
+ CORS Issues
 - CORS is enabled in app.py
 - Check browser console for error messages
 - Verify backend is running
 
-## 📱 Mobile Access
+Mobile Access
 
-### On Same Network
+ On Same Network
 
 1. Find computer IP address
 2. On mobile device, visit:
@@ -292,35 +294,35 @@ python app.py
 
 3. Note: Camera access may not work on all mobile browsers
 
-### Production Mobile
+ Production Mobile
 
 - Deploy to cloud server
 - Use responsive design (already implemented)
 - Configure HTTPS
 - Set up user authentication
 
-## 🔄 Updates & Maintenance
+Updates & Maintenance
 
-### Update Python Packages
+ Update Python Packages
 ```bash
 pip install --upgrade -r backend/requirements.txt
 ```
 
-### Backup Gestures
+ Backup Gestures
 ```bash
 # Export to CSV
 sqlite3 backend/sign_translator.db \
   "SELECT * FROM gestures" > gestures_backup.csv
 ```
 
-### Monitor Performance
+ Monitor Performance
 - Check browser console (F12)
 - Check backend terminal for errors
 - Monitor database size
 
-## 📝 Configuration Files
+Configuration Files
 
-### backend/config.py
+ backend/config.py
 ```python
 DEBUG = True                           # False in production
 DATABASE = 'sign_translator.db'        # Database path
@@ -329,9 +331,9 @@ MAX_CONTENT_LENGTH = 16 * 1024 * 1024 # Max file size
 CONFIDENCE_THRESHOLD = 0.7            # Detection threshold
 ```
 
-### Modify Ports
+ Modify Ports
 
-**Change Backend Port (backend/app.py):**
+Change Backend Port (backend/app.py):
 ```python
 app.run(debug=True, host='0.0.0.0', port=5001)  # Change 5000 to 5001
 ```
@@ -341,14 +343,14 @@ Then update frontend config (frontend/*.js):
 const API_BASE = 'http://localhost:5001/api';  // Update to 5001
 ```
 
-**Change Frontend Port (terminal):**
+Change Frontend Port (terminal):
 ```bash
 python -m http.server 8001  # Change 8000 to 8001
 ```
 
-## 🚨 Error Handling
+ Error Handling
 
-### Common Errors
+ Common Errors
 
 | Error | Cause | Solution |
 |-------|-------|----------|
@@ -358,14 +360,14 @@ python -m http.server 8001  # Change 8000 to 8001
 | `OSError: [Errno 48] Address already in use` | Port conflict | Use different port |
 | `No module named 'PIL'` | Pillow not installed | `pip install Pillow` |
 
-## 📞 Support Resources
+ Support Resources
 
 - Python Documentation: https://docs.python.org
 - Flask Documentation: https://flask.palletsprojects.com
 - Database Browser: https://sqlitebrowser.org
 - Browser Developer Tools: Press F12
 
-## ✅ Deployment Checklist
+ Deployment Checklist
 
 ```
 Pre-Deployment:
@@ -392,7 +394,7 @@ Production:
 ☐ Monitoring set up
 ```
 
-## 📚 Additional Resources
+ Additional Resources
 
 - README.md - Full documentation
 - QUICKSTART.md - Quick setup guide
@@ -403,6 +405,6 @@ Production:
 
 **Version**: 1.0
 **Last Updated**: 2026
-**Maintained By**: Your Team
+**Maintained By**: GROUP 41(ICT)
 
 For additional help, refer to the respective documentation or check the code comments.
