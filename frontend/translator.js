@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 audio: false,
             };
 
-            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            mediaStream = await requestCameraStream(constraints);
 
             cameraFeed.srcObject = mediaStream;
 
@@ -141,7 +141,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (switchCameraBtn) switchCameraBtn.disabled = false;
             showSuccess('Camera started');
         } catch (error) {
-            console.error(error);
+            // A signer pressing "Not now" on our own dialog is a normal choice, not a fault.
+            if (!/permission was not requested/i.test(error.message || '')) console.error(error);
             hideError();
             const reason = buildCameraErrorReason(error);
             showError(reason);
@@ -358,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (translationResult) {
                 translationResult.textContent = data.english || '-';
             }
+            document.dispatchEvent(new CustomEvent('translation:result', { detail: data }));
 
             updateFeedbackDisplay({
                 gesture: data.gesture,
@@ -508,6 +510,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("DISPLAY RESULT DATA:", data);
         detectedGesture.textContent = formatGestureName(data.gesture) || '-';
         translationResult.textContent = data.translation || '-';
+        document.dispatchEvent(new CustomEvent('translation:result', { detail: data }));
 
         updateFeedbackDisplay({
             gesture: data.gesture,
@@ -561,6 +564,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (langValueEl) {
             langValueEl.textContent = feedbackData.language || '-';
         }
+    }
+
+    // Called after a result is shown; the old "clear feedback" button no longer exists,
+    // so this just reveals the feedback panel.
+    function showClearFeedbackBtn() {
+        if (feedbackContainer) feedbackContainer.classList.remove('hidden');
     }
 
     function clearFeedback() {

@@ -4,11 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#1E1E1C">
     <title>AI Sign Language Translator | Welcome</title>
 
     <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="fonts.css">
     <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="brand.css">
 </head>
 
 <body>
@@ -16,11 +18,9 @@
     <!-- Navigation -->
     <nav class="navbar">
 
-        <div class="logo">
-            AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA
-        </div>
+        <div class="logo"><a href="welcome.html" aria-label="AI Sign Language Translator - go to home">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</a></div>
 
-        <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+        <button class="mobile-menu-btn" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 
         <ul class="nav-links">
 
@@ -31,13 +31,12 @@
                     <option value="dark">Dark Theme</option>
                 </select>
             </li>
-
-            <li><a href="welcome.html" class="active">Home</a></li>
             <li><a href="translator.html">Translator</a></li>
             <li><a href="letters.html">Letters</a></li>
+            <li><a href="text-to-sign.html">Text to Sign</a></li>
             <li><a href="gestures.html">Gestures</a></li>
             <li><a href="pricing.html">Pricing</a></li>
-            <li><a href="auth.html?mode=signin">Sign In</a></li>
+            <li><a href="auth.html?mode=signin" class="nav-user" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a></li>
 
         </ul>
 
@@ -45,14 +44,14 @@
 
     <!-- Mobile Menu Overlay -->
     <div id="mobileMenu" class="mobile-menu">
-        <button class="close-menu" aria-label="Close menu">✕</button>
-        <a href="welcome.html" class="nav-link">Home</a>
+        <button class="close-menu" aria-label="Close menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <a href="translator.html" class="nav-link">Translator</a>
         <a href="letters.html" class="nav-link">Letters</a>
+            <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
         <a href="gestures.html" class="nav-link">Gestures</a>
         <a href="pricing.html" class="nav-link">Pricing</a>
-        <a href="auth.html?mode=signin" class="nav-link">Sign In</a>
-        <select id="mobileThemeSelector" class="theme-selector">
+        <a href="auth.html?mode=signin" class="nav-link nav-user" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+        <select id="mobileThemeSelector" class="theme-selector" data-theme-selector>
             <option value="system">System (Default)</option>
             <option value="light">Light Theme</option>
             <option value="dark">Dark Theme</option>
@@ -61,110 +60,92 @@
     <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
 
     <!-- Hero Section -->
-    <section class="container section">
+    <section class="container section hero-section">
 
-        <div class="card text-center">
+        <div class="hero-grid">
 
-            <p class="section-tag">
-                Welcome to the Future of Communication
-            </p>
+            <div class="hero-copy">
 
-            <h1>
-                AI Sign Language Translator for English and Luganda
-            </h1>
+                <h1>
+                    Sign language to speech, in English and <em>Luganda</em>
+                </h1>
 
-            <p>
-                Break communication barriers using Artificial Intelligence.
-                Translate sign language, learn gestures, and improve accessibility
-                for everyone.
-            </p>
+                <p class="hero-lead">
+                    Sign in front of your camera and get a sentence you can read and speak. Type or say a sentence and watch it signed back.
+                    Recognition runs on your device, so it works with a weak connection and your video is never stored.
+                </p>
 
-            <div class="mt-2">
+                <div class="hero-actions">
 
-                <a href="auth.html?mode=signin" class="btn">
-                    Sign In
-                </a>
+                    <a href="translator.html" class="btn btn-electric">
+                        Start translating
+                    </a>
 
-                <a href="auth.html?mode=signup" class="btn btn-secondary">
-                    Create Account
-                </a>
+                    <a href="auth.html?mode=signup" class="btn btn-neutral">
+                        Create account
+                    </a>
 
-                <a href="translator.html" class="btn btn-success">
-                    Continue as Guest
-                </a>
+                    <a href="auth.html?mode=signin" class="hero-link">
+                        Sign in
+                    </a>
+
+                </div>
 
             </div>
+
+            <figure class="hero-demo">
+                <svg class="demo-hand" viewBox="0 0 300 320" aria-hidden="true" focusable="false"><polygon class="palm" points="150,292 118,264 118,198 146,188 172,194 194,210"/><g class="bones"><polyline points="150,292 118,264 92,234 74,206 62,182"/><polyline points="118,198 110,152 106,120 103,92"/><polyline points="146,188 146,140 147,106 148,74"/><polyline points="172,194 180,150 184,120 187,94"/><polyline points="194,210 210,174 220,150 228,128"/><polyline points="118,198 146,188 172,194 194,210"/><polyline points="150,292 118,198"/><polyline points="150,292 194,210"/></g><g class="joints"><circle cx="150" cy="292" r="4"/><circle cx="118" cy="264" r="4"/><circle cx="92" cy="234" r="4"/><circle cx="74" cy="206" r="4"/><circle cx="62" cy="182" r="6" class="tip"/><circle cx="118" cy="198" r="4"/><circle cx="110" cy="152" r="4"/><circle cx="106" cy="120" r="4"/><circle cx="103" cy="92" r="6" class="tip"/><circle cx="146" cy="188" r="4"/><circle cx="146" cy="140" r="4"/><circle cx="147" cy="106" r="4"/><circle cx="148" cy="74" r="6" class="tip"/><circle cx="172" cy="194" r="4"/><circle cx="180" cy="150" r="4"/><circle cx="184" cy="120" r="4"/><circle cx="187" cy="94" r="6" class="tip"/><circle cx="194" cy="210" r="4"/><circle cx="210" cy="174" r="4"/><circle cx="220" cy="150" r="4"/><circle cx="228" cy="128" r="6" class="tip"/></g></svg>
+                <div class="demo-chain">
+                    <ol class="demo-signs" aria-label="Signs recognised">
+                        <li>ME</li><li>WANT</li><li>WATER</li>
+                    </ol>
+                    <p class="demo-en">I want water.</p>
+                    <p class="demo-lg" lang="lg">Njagala amazzi.</p>
+                </div>
+                <figcaption>Example: three signs become an English and a Luganda sentence.</figcaption>
+            </figure>
 
         </div>
 
     </section>
 
     <!-- Features Section -->
-    <section class="container section">
+    <section class="container section" id="features">
 
-        <h2 class="text-center">
-            What You Can Do
+        <h2 class="section-title">
+            What it does
         </h2>
 
-        <div class="grid grid-2">
+        <div class="feature-list">
 
-            <div class="card">
-                <h3>Translate Sign Language</h3>
-                <p>
-                    Use your camera or upload gestures and receive translations
-                    in English and Luganda.
-                </p>
+            <div class="feature-row">
+                <h3>Signs to sentence and voice</h3>
+                <p>Your signs are collected into a sentence. You check and edit it, then it is spoken in English, or in Luganda when a recording exists.</p>
             </div>
 
-            <div class="card">
-                <h3>Learn Sign Language</h3>
-                <p>
-                    Explore letters, words and common gestures through guided
-                    learning modules.
-                </p>
+            <div class="feature-row">
+                <h3>Text to sign</h3>
+                <p>Type or say a sentence and watch it signed one sign at a time, with captions. Unknown words are fingerspelled.</p>
             </div>
 
-            <div class="card">
-                <h3>Save Translation History</h3>
-                <p>
-                    Registered users can store translations and review previous
-                    activity anytime.
-                </p>
+            <div class="feature-row">
+                <h3>Learn gestures and letters</h3>
+                <p>Practise the manual alphabet and common gestures with guided lessons.</p>
             </div>
 
-            <div class="card">
-                <h3>Accessible Communication</h3>
-                <p>
-                    Support inclusive communication between hearing and
-                    non-hearing communities.
-                </p>
+            <div class="feature-row">
+                <h3>Private and light</h3>
+                <p>Video is never stored. Recognition runs in your browser and keeps working without a strong connection.</p>
             </div>
 
-        </div>
+            <div class="feature-row">
+                <h3>Translation history</h3>
+                <p>Registered users can keep their translations and review them later.</p>
+            </div>
 
-    </section>
-
-    <!-- Tutorial Section -->
-    <section class="container section">
-
-        <div class="card">
-
-            <h2 class="text-center">
-                Getting Started
-            </h2>
-
-            <p class="text-center">
-                Watch a tutorial video to learn how to use the system.
-            </p>
-
-            <div class="tutorial-placeholder">
-
-                <h3>Tutorial Video Area</h3>
-
-                <p>
-                    Embed your YouTube tutorial or training video here.
-                </p>
-
+            <div class="feature-row">
+                <h3>Two languages, equal footing</h3>
+                <p>Every result is shown in English and Luganda side by side.</p>
             </div>
 
         </div>
@@ -180,11 +161,11 @@
 
         <div class="grid grid-2">
 
-            <div class="card">
+            <div class="card plan-card">
 
                 <h3>Basic Plan</h3>
 
-                <ul>
+                <ul class="plan-features">
                     <li>10 Free Translations</li>
                     <li>Access to Learning Materials</li>
                     <li>Translation History</li>
@@ -192,11 +173,11 @@
 
             </div>
 
-            <div class="card">
+            <div class="card plan-card featured">
 
                 <h3>Premium Plan</h3>
 
-                <ul>
+                <ul class="plan-features">
                     <li>Unlimited Translations</li>
                     <li>Priority Support</li>
                     <li>Advanced Learning Content</li>
@@ -251,14 +232,6 @@
             const mobileThemeSelector = document.getElementById('mobileThemeSelector');
             const themeSelector = document.getElementById('themeSelector');
             
-            if (mobileThemeSelector && themeSelector) {
-                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
-                mobileThemeSelector.addEventListener('change', function() {
-                    themeSelector.value = this.value;
-                    document.documentElement.setAttribute('data-theme', this.value);
-                    localStorage.setItem('theme', this.value);
-                });
-            }
             
             document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
                 link.addEventListener('click', function() {

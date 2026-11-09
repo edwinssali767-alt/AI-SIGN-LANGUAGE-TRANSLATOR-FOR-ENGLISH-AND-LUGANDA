@@ -1,0 +1,1176 @@
+{
+ "_note": "Draft vocabulary. Every sign and every Luganda form must be checked by a deaf USL signer and a Luganda speaker before real use.",
+ "languages": [
+  "english",
+  "luganda"
+ ],
+ "signs": [
+  {
+   "gloss": "ME",
+   "english": "I",
+   "luganda": "nze",
+   "synonyms": [
+    "i",
+    "me",
+    "my",
+    "myself",
+    "mine"
+   ],
+   "category": "pronoun",
+   "media": "/static/signs/me.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "person": "1s",
+   "english_object": "me",
+   "be": "am"
+  },
+  {
+   "gloss": "YOU",
+   "english": "you",
+   "luganda": "ggwe",
+   "synonyms": [
+    "you",
+    "your",
+    "yours",
+    "yourself",
+    "u"
+   ],
+   "category": "pronoun",
+   "media": "/static/signs/you.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "person": "2s",
+   "english_object": "you",
+   "be": "are"
+  },
+  {
+   "gloss": "HE_SHE",
+   "english": "he/she",
+   "luganda": "ye",
+   "synonyms": [
+    "he",
+    "she",
+    "him",
+    "her",
+    "his",
+    "hers"
+   ],
+   "category": "pronoun",
+   "media": "/static/signs/he_she.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "person": "3s",
+   "english_object": "him/her",
+   "be": "is"
+  },
+  {
+   "gloss": "WE",
+   "english": "we",
+   "luganda": "ffe",
+   "synonyms": [
+    "we",
+    "us",
+    "our",
+    "ours"
+   ],
+   "category": "pronoun",
+   "media": "/static/signs/we.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "person": "1p",
+   "english_object": "us",
+   "be": "are"
+  },
+  {
+   "gloss": "THEY",
+   "english": "they",
+   "luganda": "bo",
+   "synonyms": [
+    "they",
+    "them",
+    "their",
+    "theirs"
+   ],
+   "category": "pronoun",
+   "media": "/static/signs/they.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "person": "3p",
+   "english_object": "them",
+   "be": "are"
+  },
+  {
+   "gloss": "THIS",
+   "english": "this",
+   "luganda": "kino",
+   "synonyms": [
+    "this",
+    "these"
+   ],
+   "category": "pronoun",
+   "media": "/static/signs/this.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "person": "3s",
+   "english_object": "this",
+   "be": "is"
+  },
+  {
+   "gloss": "THAT",
+   "english": "that",
+   "luganda": "ekyo",
+   "synonyms": [
+    "that",
+    "those"
+   ],
+   "category": "pronoun",
+   "media": "/static/signs/that.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "person": "3s",
+   "english_object": "that",
+   "be": "is"
+  },
+  {
+   "gloss": "WHAT",
+   "english": "what",
+   "luganda": "ki",
+   "synonyms": [
+    "what"
+   ],
+   "category": "question",
+   "media": "/static/signs/what.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "WHO",
+   "english": "who",
+   "luganda": "ani",
+   "synonyms": [
+    "who",
+    "whom"
+   ],
+   "category": "question",
+   "media": "/static/signs/who.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "WHERE",
+   "english": "where",
+   "luganda": "wa",
+   "synonyms": [
+    "where"
+   ],
+   "category": "question",
+   "media": "/static/signs/where.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "WHEN",
+   "english": "when",
+   "luganda": "ddi",
+   "synonyms": [
+    "when"
+   ],
+   "category": "question",
+   "media": "/static/signs/when.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "WHY",
+   "english": "why",
+   "luganda": "lwaki",
+   "synonyms": [
+    "why"
+   ],
+   "category": "question",
+   "media": "/static/signs/why.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "HOW",
+   "english": "how",
+   "luganda": "otya",
+   "synonyms": [
+    "how"
+   ],
+   "category": "question",
+   "media": "/static/signs/how.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "WANT",
+   "english": "want",
+   "luganda": "njagala",
+   "synonyms": [
+    "want",
+    "wants",
+    "wanted",
+    "wish"
+   ],
+   "category": "verb",
+   "media": "/static/signs/want.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "wants",
+   "forms": {
+    "1s": "njagala",
+    "2s": "oyagala",
+    "3s": "ayagala",
+    "1p": "twagala",
+    "3p": "bagala"
+   }
+  },
+  {
+   "gloss": "NEED",
+   "english": "need",
+   "luganda": "njetaaga",
+   "synonyms": [
+    "need",
+    "needs",
+    "needed",
+    "require"
+   ],
+   "category": "verb",
+   "media": "/static/signs/need.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "needs",
+   "forms": {
+    "1s": "njetaaga",
+    "2s": "weetaaga",
+    "3s": "yeetaaga",
+    "1p": "twetaaga",
+    "3p": "beetaaga"
+   }
+  },
+  {
+   "gloss": "GO",
+   "english": "go",
+   "luganda": "ŋŋenda",
+   "synonyms": [
+    "go",
+    "goes",
+    "went",
+    "going",
+    "walk"
+   ],
+   "category": "verb",
+   "media": "/static/signs/go.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "goes",
+   "forms": {
+    "1s": "ŋŋenda",
+    "2s": "ogenda",
+    "3s": "agenda",
+    "1p": "tugenda",
+    "3p": "bagenda"
+   }
+  },
+  {
+   "gloss": "COME",
+   "english": "come",
+   "luganda": "nzija",
+   "synonyms": [
+    "come",
+    "comes",
+    "came",
+    "coming",
+    "arrive"
+   ],
+   "category": "verb",
+   "media": "/static/signs/come.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "comes",
+   "forms": {
+    "1s": "nzija",
+    "2s": "ojja",
+    "3s": "ajja",
+    "1p": "tujja",
+    "3p": "bajja"
+   }
+  },
+  {
+   "gloss": "EAT",
+   "english": "eat",
+   "luganda": "ndya",
+   "synonyms": [
+    "eat",
+    "eats",
+    "ate",
+    "eating"
+   ],
+   "category": "verb",
+   "media": "/static/signs/eat.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "eats",
+   "forms": {
+    "1s": "ndya",
+    "2s": "olya",
+    "3s": "alya",
+    "1p": "tulya",
+    "3p": "balya"
+   }
+  },
+  {
+   "gloss": "DRINK",
+   "english": "drink",
+   "luganda": "nnywa",
+   "synonyms": [
+    "drink",
+    "drinks",
+    "drank",
+    "drinking"
+   ],
+   "category": "verb",
+   "media": "/static/signs/drink.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "drinks",
+   "forms": {
+    "1s": "nnywa",
+    "2s": "onywa",
+    "3s": "anywa",
+    "1p": "tunywa",
+    "3p": "banywa"
+   }
+  },
+  {
+   "gloss": "SEE",
+   "english": "see",
+   "luganda": "ndaba",
+   "synonyms": [
+    "see",
+    "sees",
+    "saw",
+    "look",
+    "watch"
+   ],
+   "category": "verb",
+   "media": "/static/signs/see.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "sees",
+   "forms": {
+    "1s": "ndaba",
+    "2s": "olaba",
+    "3s": "alaba",
+    "1p": "tulaba",
+    "3p": "balaba"
+   }
+  },
+  {
+   "gloss": "KNOW",
+   "english": "know",
+   "luganda": "mmanyi",
+   "synonyms": [
+    "know",
+    "knows",
+    "knew"
+   ],
+   "category": "verb",
+   "media": "/static/signs/know.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "knows",
+   "forms": {
+    "1s": "mmanyi",
+    "2s": "omanyi",
+    "3s": "amanyi",
+    "1p": "tumanyi",
+    "3p": "bamanyi"
+   }
+  },
+  {
+   "gloss": "UNDERSTAND",
+   "english": "understand",
+   "luganda": "ntegeera",
+   "synonyms": [
+    "understand",
+    "understands",
+    "understood"
+   ],
+   "category": "verb",
+   "media": "/static/signs/understand.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "understands",
+   "forms": {
+    "1s": "ntegeera",
+    "2s": "otegeera",
+    "3s": "ategeera",
+    "1p": "tutegeera",
+    "3p": "bategeera"
+   }
+  },
+  {
+   "gloss": "LOVE",
+   "english": "love",
+   "luganda": "njagala",
+   "synonyms": [
+    "love",
+    "loves",
+    "like",
+    "likes"
+   ],
+   "category": "verb",
+   "media": "/static/signs/love.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "loves",
+   "forms": {
+    "1s": "njagala",
+    "2s": "oyagala",
+    "3s": "ayagala",
+    "1p": "twagala",
+    "3p": "bagala"
+   }
+  },
+  {
+   "gloss": "HELP",
+   "english": "help",
+   "luganda": "nnyamba",
+   "synonyms": [
+    "help",
+    "helps",
+    "assist"
+   ],
+   "category": "verb",
+   "media": "/static/signs/help.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_3s": "helps",
+   "forms": {
+    "1s": "nnyamba",
+    "2s": "oyamba",
+    "3s": "ayamba",
+    "1p": "tuyamba",
+    "3p": "bayamba"
+   }
+  },
+  {
+   "gloss": "HUNGRY",
+   "english": "hungry",
+   "luganda": "nnina enjala",
+   "synonyms": [
+    "hungry",
+    "starving"
+   ],
+   "category": "adjective",
+   "media": "/static/signs/hungry.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "forms": {
+    "1s": "nnina enjala",
+    "2s": "olina enjala",
+    "3s": "alina enjala",
+    "1p": "tulina enjala",
+    "3p": "balina enjala"
+   }
+  },
+  {
+   "gloss": "THIRSTY",
+   "english": "thirsty",
+   "luganda": "nnina ennyonta",
+   "synonyms": [
+    "thirsty"
+   ],
+   "category": "adjective",
+   "media": "/static/signs/thirsty.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "forms": {
+    "1s": "nnina ennyonta",
+    "2s": "olina ennyonta",
+    "3s": "alina ennyonta",
+    "1p": "tulina ennyonta",
+    "3p": "balina ennyonta"
+   }
+  },
+  {
+   "gloss": "SICK",
+   "english": "sick",
+   "luganda": "ndi mulwadde",
+   "synonyms": [
+    "sick",
+    "ill",
+    "unwell"
+   ],
+   "category": "adjective",
+   "media": "/static/signs/sick.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "forms": {
+    "1s": "ndi mulwadde",
+    "2s": "oli mulwadde",
+    "3s": "ali mulwadde",
+    "1p": "tuli balwadde",
+    "3p": "bali balwadde"
+   }
+  },
+  {
+   "gloss": "HAPPY",
+   "english": "happy",
+   "luganda": "nsanyuse",
+   "synonyms": [
+    "happy",
+    "glad"
+   ],
+   "category": "adjective",
+   "media": "/static/signs/happy.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "forms": {
+    "1s": "nsanyuse",
+    "2s": "osanyuse",
+    "3s": "asanyuse",
+    "1p": "tusanyuse",
+    "3p": "basanyuse"
+   }
+  },
+  {
+   "gloss": "TIRED",
+   "english": "tired",
+   "luganda": "nkooye",
+   "synonyms": [
+    "tired",
+    "sleepy"
+   ],
+   "category": "adjective",
+   "media": "/static/signs/tired.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "forms": {
+    "1s": "nkooye",
+    "2s": "okooye",
+    "3s": "akooye",
+    "1p": "tukooye",
+    "3p": "bakooye"
+   }
+  },
+  {
+   "gloss": "GOOD",
+   "english": "good",
+   "luganda": "kirungi",
+   "synonyms": [
+    "good",
+    "fine",
+    "well",
+    "great",
+    "nice"
+   ],
+   "category": "adjective",
+   "media": "/static/signs/good.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "forms": {
+    "1s": "ndi bulungi",
+    "2s": "oli bulungi",
+    "3s": "ali bulungi",
+    "1p": "tuli bulungi",
+    "3p": "bali bulungi"
+   }
+  },
+  {
+   "gloss": "BAD",
+   "english": "bad",
+   "luganda": "kibi",
+   "synonyms": [
+    "bad",
+    "poor",
+    "terrible"
+   ],
+   "category": "adjective",
+   "media": "/static/signs/bad.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "forms": {
+    "1s": "ndi bubi",
+    "2s": "oli bubi",
+    "3s": "ali bubi",
+    "1p": "tuli bubi",
+    "3p": "bali bubi"
+   }
+  },
+  {
+   "gloss": "NOT",
+   "english": "not",
+   "luganda": "si",
+   "synonyms": [
+    "not",
+    "no not",
+    "never",
+    "dont",
+    "don't"
+   ],
+   "category": "function",
+   "media": "/static/signs/not.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "WATER",
+   "english": "water",
+   "luganda": "amazzi",
+   "synonyms": [
+    "water"
+   ],
+   "category": "noun",
+   "media": "/static/signs/water.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "FOOD",
+   "english": "food",
+   "luganda": "emmere",
+   "synonyms": [
+    "food",
+    "meal"
+   ],
+   "category": "noun",
+   "media": "/static/signs/food.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "MEDICINE",
+   "english": "medicine",
+   "luganda": "eddagala",
+   "synonyms": [
+    "medicine",
+    "medication",
+    "drugs",
+    "pills"
+   ],
+   "category": "noun",
+   "media": "/static/signs/medicine.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "MONEY",
+   "english": "money",
+   "luganda": "ssente",
+   "synonyms": [
+    "money",
+    "cash"
+   ],
+   "category": "noun",
+   "media": "/static/signs/money.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "HOME",
+   "english": "home",
+   "luganda": "awaka",
+   "synonyms": [
+    "home",
+    "house"
+   ],
+   "category": "noun",
+   "media": "/static/signs/home.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "HOSPITAL",
+   "english": "hospital",
+   "luganda": "eddwaliro",
+   "synonyms": [
+    "hospital",
+    "clinic"
+   ],
+   "category": "noun",
+   "media": "/static/signs/hospital.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "the hospital"
+  },
+  {
+   "gloss": "SCHOOL",
+   "english": "school",
+   "luganda": "essomero",
+   "synonyms": [
+    "school"
+   ],
+   "category": "noun",
+   "media": "/static/signs/school.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "school"
+  },
+  {
+   "gloss": "MARKET",
+   "english": "market",
+   "luganda": "akatale",
+   "synonyms": [
+    "market",
+    "shop",
+    "store"
+   ],
+   "category": "noun",
+   "media": "/static/signs/market.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "the market"
+  },
+  {
+   "gloss": "TOILET",
+   "english": "toilet",
+   "luganda": "kabuyonjo",
+   "synonyms": [
+    "toilet",
+    "bathroom",
+    "restroom",
+    "latrine"
+   ],
+   "category": "noun",
+   "media": "/static/signs/toilet.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "the toilet"
+  },
+  {
+   "gloss": "DOCTOR",
+   "english": "doctor",
+   "luganda": "omusawo",
+   "synonyms": [
+    "doctor",
+    "nurse"
+   ],
+   "category": "noun",
+   "media": "/static/signs/doctor.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "a doctor"
+  },
+  {
+   "gloss": "TEACHER",
+   "english": "teacher",
+   "luganda": "omusomesa",
+   "synonyms": [
+    "teacher"
+   ],
+   "category": "noun",
+   "media": "/static/signs/teacher.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "a teacher"
+  },
+  {
+   "gloss": "MOTHER",
+   "english": "mother",
+   "luganda": "maama",
+   "synonyms": [
+    "mother",
+    "mum",
+    "mom",
+    "mama"
+   ],
+   "category": "noun",
+   "media": "/static/signs/mother.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "my mother"
+  },
+  {
+   "gloss": "FATHER",
+   "english": "father",
+   "luganda": "taata",
+   "synonyms": [
+    "father",
+    "dad",
+    "papa"
+   ],
+   "category": "noun",
+   "media": "/static/signs/father.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "my father"
+  },
+  {
+   "gloss": "FRIEND",
+   "english": "friend",
+   "luganda": "mukwano",
+   "synonyms": [
+    "friend",
+    "friends"
+   ],
+   "category": "noun",
+   "media": "/static/signs/friend.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "a friend"
+  },
+  {
+   "gloss": "CHILD",
+   "english": "child",
+   "luganda": "omwana",
+   "synonyms": [
+    "child",
+    "baby",
+    "kid"
+   ],
+   "category": "noun",
+   "media": "/static/signs/child.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "a child"
+  },
+  {
+   "gloss": "NAME",
+   "english": "name",
+   "luganda": "erinnya",
+   "synonyms": [
+    "name"
+   ],
+   "category": "noun",
+   "media": "/static/signs/name.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "PHONE",
+   "english": "phone",
+   "luganda": "essimu",
+   "synonyms": [
+    "phone",
+    "mobile",
+    "telephone"
+   ],
+   "category": "noun",
+   "media": "/static/signs/phone.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "a phone"
+  },
+  {
+   "gloss": "WORK",
+   "english": "work",
+   "luganda": "omulimu",
+   "synonyms": [
+    "work",
+    "job"
+   ],
+   "category": "noun",
+   "media": "/static/signs/work.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "TAXI",
+   "english": "taxi",
+   "luganda": "takisi",
+   "synonyms": [
+    "taxi",
+    "bus",
+    "car",
+    "transport"
+   ],
+   "category": "noun",
+   "media": "/static/signs/taxi.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "english_obj": "a taxi"
+  },
+  {
+   "gloss": "PAIN",
+   "english": "pain",
+   "luganda": "obulumi",
+   "synonyms": [
+    "pain",
+    "ache",
+    "hurt",
+    "hurts"
+   ],
+   "category": "noun",
+   "media": "/static/signs/pain.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "HELLO",
+   "english": "hello",
+   "luganda": "oli otya",
+   "synonyms": [
+    "hello",
+    "hi",
+    "hey",
+    "greetings"
+   ],
+   "category": "social",
+   "media": "/static/signs/hello.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "GOODBYE",
+   "english": "goodbye",
+   "luganda": "weeraba",
+   "synonyms": [
+    "goodbye",
+    "bye",
+    "farewell"
+   ],
+   "category": "social",
+   "media": "/static/signs/goodbye.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "THANK_YOU",
+   "english": "thank you",
+   "luganda": "weebale",
+   "synonyms": [
+    "thank you",
+    "thanks",
+    "thank"
+   ],
+   "category": "social",
+   "media": "/static/signs/thank_you.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "SORRY",
+   "english": "sorry",
+   "luganda": "nsonyiwa",
+   "synonyms": [
+    "sorry",
+    "excuse me",
+    "pardon"
+   ],
+   "category": "social",
+   "media": "/static/signs/sorry.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "PLEASE",
+   "english": "please",
+   "luganda": "nsaba",
+   "synonyms": [
+    "please"
+   ],
+   "category": "social",
+   "media": "/static/signs/please.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "YES",
+   "english": "yes",
+   "luganda": "yee",
+   "synonyms": [
+    "yes",
+    "yeah",
+    "ok",
+    "okay",
+    "sure"
+   ],
+   "category": "social",
+   "media": "/static/signs/yes.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "NO",
+   "english": "no",
+   "luganda": "nedda",
+   "synonyms": [
+    "no",
+    "nope"
+   ],
+   "category": "social",
+   "media": "/static/signs/no.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "SLOW",
+   "english": "slowly",
+   "luganda": "mpola",
+   "synonyms": [
+    "slow",
+    "slowly"
+   ],
+   "category": "social",
+   "media": "/static/signs/slow.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "REPEAT",
+   "english": "repeat",
+   "luganda": "ddamu",
+   "synonyms": [
+    "repeat",
+    "again"
+   ],
+   "category": "social",
+   "media": "/static/signs/repeat.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "TODAY",
+   "english": "today",
+   "luganda": "leero",
+   "synonyms": [
+    "today"
+   ],
+   "category": "time",
+   "media": "/static/signs/today.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "TOMORROW",
+   "english": "tomorrow",
+   "luganda": "enkya",
+   "synonyms": [
+    "tomorrow"
+   ],
+   "category": "time",
+   "media": "/static/signs/tomorrow.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "YESTERDAY",
+   "english": "yesterday",
+   "luganda": "jjo",
+   "synonyms": [
+    "yesterday"
+   ],
+   "category": "time",
+   "media": "/static/signs/yesterday.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "NOW",
+   "english": "now",
+   "luganda": "kati",
+   "synonyms": [
+    "now",
+    "currently"
+   ],
+   "category": "time",
+   "media": "/static/signs/now.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "MORNING",
+   "english": "morning",
+   "luganda": "ku makya",
+   "synonyms": [
+    "morning"
+   ],
+   "category": "time",
+   "media": "/static/signs/morning.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "NIGHT",
+   "english": "night",
+   "luganda": "ekiro",
+   "synonyms": [
+    "night",
+    "evening"
+   ],
+   "category": "time",
+   "media": "/static/signs/night.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "LATER",
+   "english": "later",
+   "luganda": "oluvannyuma",
+   "synonyms": [
+    "later",
+    "soon"
+   ],
+   "category": "time",
+   "media": "/static/signs/later.mp4",
+   "status": "needs verification by a deaf USL signer"
+  },
+  {
+   "gloss": "ONE",
+   "english": "one",
+   "luganda": "emu",
+   "synonyms": [
+    "one",
+    "1"
+   ],
+   "category": "number",
+   "media": "/static/signs/one.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 1
+  },
+  {
+   "gloss": "TWO",
+   "english": "two",
+   "luganda": "bbiri",
+   "synonyms": [
+    "two",
+    "2"
+   ],
+   "category": "number",
+   "media": "/static/signs/two.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 2
+  },
+  {
+   "gloss": "THREE",
+   "english": "three",
+   "luganda": "ssatu",
+   "synonyms": [
+    "three",
+    "3"
+   ],
+   "category": "number",
+   "media": "/static/signs/three.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 3
+  },
+  {
+   "gloss": "FOUR",
+   "english": "four",
+   "luganda": "nnya",
+   "synonyms": [
+    "four",
+    "4"
+   ],
+   "category": "number",
+   "media": "/static/signs/four.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 4
+  },
+  {
+   "gloss": "FIVE",
+   "english": "five",
+   "luganda": "ttaano",
+   "synonyms": [
+    "five",
+    "5"
+   ],
+   "category": "number",
+   "media": "/static/signs/five.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 5
+  },
+  {
+   "gloss": "SIX",
+   "english": "six",
+   "luganda": "mukaaga",
+   "synonyms": [
+    "six",
+    "6"
+   ],
+   "category": "number",
+   "media": "/static/signs/six.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 6
+  },
+  {
+   "gloss": "SEVEN",
+   "english": "seven",
+   "luganda": "musanvu",
+   "synonyms": [
+    "seven",
+    "7"
+   ],
+   "category": "number",
+   "media": "/static/signs/seven.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 7
+  },
+  {
+   "gloss": "EIGHT",
+   "english": "eight",
+   "luganda": "munaana",
+   "synonyms": [
+    "eight",
+    "8"
+   ],
+   "category": "number",
+   "media": "/static/signs/eight.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 8
+  },
+  {
+   "gloss": "NINE",
+   "english": "nine",
+   "luganda": "mwenda",
+   "synonyms": [
+    "nine",
+    "9"
+   ],
+   "category": "number",
+   "media": "/static/signs/nine.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 9
+  },
+  {
+   "gloss": "TEN",
+   "english": "ten",
+   "luganda": "kkumi",
+   "synonyms": [
+    "ten",
+    "10"
+   ],
+   "category": "number",
+   "media": "/static/signs/ten.mp4",
+   "status": "needs verification by a deaf USL signer",
+   "value": 10
+  }
+ ]
+}

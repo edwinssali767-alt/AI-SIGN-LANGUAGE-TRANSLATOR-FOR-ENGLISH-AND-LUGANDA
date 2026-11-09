@@ -13,6 +13,7 @@ except ImportError:
 from dotenv import load_dotenv
 import os
 import smtplib
+import threading
 import base64
 import json
 import subprocess
@@ -20,6 +21,7 @@ import sys
 import uuid
 from email.message import EmailMessage
 from pathlib import Path
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -42,12 +44,24 @@ from mongodb_client import (
 from translator import Translator
 
 
-app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# Flask's built-in /static route would otherwise answer 404 for /static/signs/... and /static/audio/lg/...
+# before the catch-all frontend route is reached, so point it at frontend/static.
+app = Flask(__name__, static_folder=str(PROJECT_BACKEND_DIR.parent / 'frontend' / 'static'), static_url_path='/static')
 app.config.from_object(Config)
 
+# Windows can map these wrongly; browsers refuse ES modules / WASM with the wrong type.
+import mimetypes
+mimetypes.add_type('text/javascript', '.mjs')
+mimetypes.add_type('application/wasm', '.wasm')
+mimetypes.add_type('application/octet-stream', '.task')
+# The frontend is served by this same app, so no cross-origin access is needed by default.
+# To allow another origin (e.g. a separate dev server) set CORS_ORIGINS=http://host:port in .env.
+_cors_origins = [o.strip() for o in os.getenv('CORS_ORIGINS', '').split(',') if o.strip()]
+if _cors_origins:
+    CORS(app, resources={r"/api/*": {"origins": _cors_origins}})
+
 if HAS_SOCKETIO:
-    socketio = SocketIO(app, cors_allowed_origins="*")
+    socketio = SocketIO(app, cors_allowed_origins=_cors_origins or None)
 else:
     socketio = None
 
@@ -78,14 +92,19 @@ PROJECT_DIRS = [
 for directory in PROJECT_DIRS:
     os.makedirs(directory, exist_ok=True)
 
-# Initialize database
-init_db(app)
+# Initialize database. If it is unreachable (e.g. no internet), still start: the offline features
+# (recognition, sentences, text to sign) do not use it. Login, history and admin lists need it.
+try:
+    init_db(app)
+except Exception as exc:
+    print(f'[WARN] Database unavailable at startup, accounts and history will not work until it is: {exc}')
 
 # Register teardown handler
 app.teardown_appcontext(close_mongo_or_sqlite)
 
 # Initialize processors
 gesture_processor = GestureProcessor()
+motion_lock = threading.Lock()
 translator = Translator()
 
 
@@ -174,20 +193,42 @@ def get_public_user_id(user_row):
 def make_user_token(user_row):
     """Build the simple non-JWT auth token used by this app."""
     auth_id = ensure_user_auth_id(user_row)
-    return f"user_{auth_id}" if auth_id else None
+    return sign_token('user', auth_id) if auth_id else None
+
+
+TOKEN_MAX_AGE_SECONDS = 7 * 24 * 3600
+
+
+def _token_serializer():
+    return URLSafeTimedSerializer(app.config['SECRET_KEY'], salt='auth-token')
+
+
+def sign_token(kind, subject):
+    """Create a signed, expiring token like 'user_<signed payload>'."""
+    return f"{kind}_{_token_serializer().dumps({'k': kind, 'id': str(subject)})}"
+
+
+def _read_token(token, kind):
+    """Return the subject id of a valid signed token of this kind, else None."""
+    if not token or not token.startswith(f'{kind}_'):
+        return None
+    try:
+        data = _token_serializer().loads(token.split('_', 1)[1], max_age=TOKEN_MAX_AGE_SECONDS)
+    except (BadSignature, SignatureExpired):
+        return None
+    if not isinstance(data, dict) or data.get('k') != kind:
+        return None
+    return str(data.get('id') or '') or None
 
 
 def is_valid_admin_token(token):
-    """Validate simple admin token format."""
-    return bool(token and token.startswith('admin_'))
+    """Validate a signed admin token."""
+    return _read_token(token, 'admin') is not None
 
 
 def get_user_id_from_token(token):
-    """Extract the simple user id from a non-JWT user token."""
-    if not token or not token.startswith('user_'):
-        return None
-    user_id = token.split('_', 1)[1].strip()
-    return user_id or None
+    """Extract the user id from a signed user token."""
+    return _read_token(token, 'user')
 
 
 def to_object_id(raw_id):
@@ -777,19 +818,19 @@ def translate_gesture_motion():
         print(f"Processing {len(gesture_frames)} frames for motion analysis...")
         
         detected_gesture = None
-        
-        # Send frames to gesture processor
-        for i, frame_data in enumerate(gesture_frames):
-            # Add frame to buffer
-            frame_count = gesture_processor.add_frame(frame_data)
-            
-            # Check if we have enough frames for prediction
-            if gesture_processor.has_enough_frames():
-                detected_gesture = gesture_processor.predict_motion_gesture()
-                if detected_gesture:
-                    print(f"Gesture recognized after frame {i+1}: {detected_gesture}")
-                    break
-        
+
+        # One request at a time may use the shared frame buffer, and it always starts empty,
+        # so different users' frames never mix.
+        with motion_lock:
+            gesture_processor.frame_buffer.clear()
+            for i, frame_data in enumerate(gesture_frames):
+                gesture_processor.add_frame(frame_data)
+                if gesture_processor.has_enough_frames():
+                    detected_gesture = gesture_processor.predict_motion_gesture()
+                    if detected_gesture:
+                        print(f"Gesture recognized after frame {i+1}: {detected_gesture}")
+                        break
+
         if not detected_gesture:
             if gesture_frames:
                 midpoint_index = len(gesture_frames) // 2
@@ -865,8 +906,7 @@ def handle_realtime_frame(data):
     import time
     start_time = time.time()
 
-    detected_gesture = gesture_processor.process_gesture(frame_data)
-    confidence = 0.85
+    detected_gesture, confidence = gesture_processor.predict_static_gesture(frame_data, with_confidence=True)
 
     english_translation = None
     luganda_translation = None
@@ -972,7 +1012,7 @@ def admin_login():
                 'success': True,
                 'admin_id': str(user_id),
                 'username': user_name,
-                'token': f"admin_{user_id}"
+                'token': sign_token('admin', user_id)
             }), 200
         
         user = admin_users.find_one({'username': username})
@@ -989,7 +1029,7 @@ def admin_login():
             'success': True,
             'admin_id': str(user['_id']),
             'username': user['username'],
-            'token': f"admin_{user['_id']}"
+            'token': sign_token('admin', user['_id'])
         }), 200
     except Exception as e:
         print(f"Admin login error: {e}")
@@ -1109,8 +1149,12 @@ def admin_get_translations():
 
         translations = get_translations_collection()
         rows = []
+        user_cache = {}  # one lookup per distinct user instead of one per row
         for item in translations.find({}).sort('timestamp', -1).limit(100):
-            user_doc = get_user_row(item.get('user_id')) if item.get('user_id') else None
+            uid = item.get('user_id')
+            if uid and uid not in user_cache:
+                user_cache[uid] = get_user_row(uid)
+            user_doc = user_cache.get(uid) if uid else None
             rows.append({
                 'id': str(item.get('_id')),
                 'user': user_doc.get('username') if user_doc else 'Guest/Unknown',
@@ -1482,7 +1526,7 @@ def admin_change_user_password(user_id):
 def user_signup():
     """Register new user account"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
@@ -1552,7 +1596,7 @@ def user_signup():
 def user_login():
     """User login endpoint"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         username = data.get('username')
         password = data.get('password')
         
@@ -2060,6 +2104,72 @@ def admin_train_model():
         return jsonify({'error': str(e)}), 500
 
 
+LANDMARK_DIR = PROJECT_ROOT_DIR / 'datasets' / 'landmarks'
+LANDMARK_DEVICES = {'phone', 'laptop', 'tablet', 'other'}
+
+
+@app.route('/api/admin/landmarks', methods=['POST'])
+def admin_save_landmark_sequence():
+    """Save one recorded landmark sequence (numbers only; no video or images)."""
+    token = request.headers.get('Authorization')
+    if not is_valid_admin_token(token):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json(silent=True) or {}
+    if data.get('consent') is not True:
+        return jsonify({'error': 'The signer must give consent before data is saved.'}), 400
+
+    label = sanitize_label(data.get('label'))
+    signer = sanitize_label(data.get('signer_id'))
+    device = str(data.get('device') or '').lower()
+    frames = data.get('frames')
+    if not label or not signer:
+        return jsonify({'error': 'Sign label and signer ID are required.'}), 400
+    if device not in LANDMARK_DEVICES:
+        return jsonify({'error': 'Device type must be phone, laptop, tablet or other.'}), 400
+    if not isinstance(frames, list) or not 10 <= len(frames) <= 90:
+        return jsonify({'error': 'A recording needs between 10 and 90 frames.'}), 400
+
+    clean = []
+    for frame in frames:
+        if not isinstance(frame, list) or len(frame) != 63:
+            return jsonify({'error': 'Every frame must contain 21 landmarks (63 numbers).'}), 400
+        try:
+            values = [round(float(v), 5) for v in frame]
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Landmark values must be numbers.'}), 400
+        if any(v != v or abs(v) > 5 for v in values):
+            return jsonify({'error': 'Landmark values out of range.'}), 400
+        clean.append(values)
+
+    folder = LANDMARK_DIR / label
+    folder.mkdir(parents=True, exist_ok=True)
+    filename = f"{signer}_{uuid.uuid4().hex[:10]}.json"
+    (folder / filename).write_text(json.dumps({
+        'signer_id': signer,
+        'device': device,
+        'label': label,
+        'consent': True,
+        'captured_at': get_nairobi_time(),
+        'frames': clean,
+    }, separators=(',', ':')), encoding='utf-8')
+    return jsonify({'success': True, 'file': filename, 'frames': len(clean)}), 201
+
+
+@app.route('/api/admin/landmarks/summary', methods=['GET'])
+def admin_landmark_summary():
+    """Recording counts per sign and the list of signers."""
+    if not is_valid_admin_token(request.headers.get('Authorization')):
+        return jsonify({'error': 'Unauthorized'}), 401
+    signs, signers = {}, set()
+    if LANDMARK_DIR.exists():
+        for folder in sorted(p for p in LANDMARK_DIR.iterdir() if p.is_dir()):
+            files = list(folder.glob('*.json'))
+            signs[folder.name] = len(files)
+            signers.update(f.name.rsplit('_', 1)[0] for f in files)
+    return jsonify({'signs': signs, 'signers': sorted(signers)}), 200
+
+
 @app.teardown_appcontext
 def close_db(error):
     """Close database connection"""
@@ -2067,7 +2177,14 @@ def close_db(error):
 
 
 if __name__ == '__main__':
+    # Safe defaults: no debugger, localhost only. For phone testing on your Wi-Fi set HOST=0.0.0.0;
+    # for auto-reload while developing set FLASK_DEBUG=1.
+    run_host = os.getenv('HOST', '127.0.0.1')
+    run_debug = os.getenv('FLASK_DEBUG', '0') == '1'
+    if app.config.get('ADMIN_PASSWORD') in ('', 'admin123') or len(app.config.get('ADMIN_PASSWORD') or '') < 8:
+        print('[SECURITY] ADMIN_PASSWORD is empty, the default, or shorter than 8 characters. '
+              'Set a strong ADMIN_PASSWORD in backend/.env.')
     if socketio:
-        socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+        socketio.run(app, debug=run_debug, host=run_host, port=5000, allow_unsafe_werkzeug=True)
     else:
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=run_debug, host=run_host, port=5000)

@@ -1,0 +1,239 @@
+{
+  "_help": [
+    "HOW TO ADD A PATTERN: add an object to 'sentence' (signs -> sentence) or edit 'text_to_gloss' (sentence -> signs).",
+    "match: list of glosses in the order they are signed. Use a gloss name (WATER) or a category wildcard: @pronoun @verb @noun @adjective @question @number @time.",
+    "english / luganda: templates. {1} {2} ... insert the word at that position in 'match'. Verbs and adjectives are conjugated for the first pronoun automatically.",
+    "{be} is am/are/is and {do} is do/does for the first pronoun. {n:base} forces the plain English verb (after 'do not').",
+    "The first matching pattern wins, so put specific patterns before general ones. Patterns marked 'exact' must match the whole signed sequence.",
+    "If nothing matches the words are joined into a readable phrase. All Luganda here is a draft and needs checking by a Luganda speaker."
+  ],
+  "sentence": [
+    {
+      "id": "greet-how-are-you",
+      "match": [
+        "HELLO",
+        "HOW",
+        "YOU"
+      ],
+      "exact": true,
+      "english": "Hello, how are you?",
+      "luganda": "Oli otya?"
+    },
+    {
+      "id": "name-what",
+      "match": [
+        "YOU",
+        "NAME",
+        "WHAT"
+      ],
+      "exact": true,
+      "english": "What is your name?",
+      "luganda": "Erinnya lyo ggwe ani?"
+    },
+    {
+      "id": "understand-not",
+      "match": [
+        "ME",
+        "NOT",
+        "UNDERSTAND"
+      ],
+      "exact": true,
+      "english": "I do not understand.",
+      "luganda": "Sitegeera."
+    },
+    {
+      "id": "help-me",
+      "match": [
+        "HELP",
+        "ME"
+      ],
+      "exact": true,
+      "english": "Please help me.",
+      "luganda": "Nnyamba, nsaba."
+    },
+    {
+      "id": "thank-you-very",
+      "match": [
+        "THANK_YOU"
+      ],
+      "exact": true,
+      "english": "Thank you.",
+      "luganda": "Weebale."
+    },
+    {
+      "id": "where-noun",
+      "match": [
+        "WHERE",
+        "@noun"
+      ],
+      "exact": true,
+      "english": "Where is the {2}?",
+      "luganda": "{2} wa?"
+    },
+    {
+      "id": "where-noun-rev",
+      "match": [
+        "@noun",
+        "WHERE"
+      ],
+      "exact": true,
+      "english": "Where is the {1}?",
+      "luganda": "{1} wa?"
+    },
+    {
+      "id": "how-much",
+      "match": [
+        "HOW",
+        "MONEY"
+      ],
+      "exact": true,
+      "english": "How much money?",
+      "luganda": "Ssente mmeka?"
+    },
+    {
+      "id": "subj-verb-obj",
+      "match": [
+        "@pronoun",
+        "@verb",
+        "@noun"
+      ],
+      "exact": true,
+      "english": "{1} {2} {3}.",
+      "luganda": "{2} {3}."
+    },
+    {
+      "id": "subj-verb-obj-num",
+      "match": [
+        "@pronoun",
+        "@verb",
+        "@number",
+        "@noun"
+      ],
+      "exact": true,
+      "english": "{1} {2} {3} {4}.",
+      "luganda": "{2} {4} {3}."
+    },
+    {
+      "id": "subj-verb",
+      "match": [
+        "@pronoun",
+        "@verb"
+      ],
+      "exact": true,
+      "english": "{1} {2}.",
+      "luganda": "{2}."
+    },
+    {
+      "id": "subj-adj",
+      "match": [
+        "@pronoun",
+        "@adjective"
+      ],
+      "exact": true,
+      "english": "{1} {be} {2}.",
+      "luganda": "{2}."
+    },
+    {
+      "id": "subj-not-verb",
+      "match": [
+        "@pronoun",
+        "NOT",
+        "@verb"
+      ],
+      "exact": true,
+      "english": "{1} {do} not {3:base}.",
+      "luganda": "Si {3}."
+    },
+    {
+      "id": "subj-verb-time",
+      "match": [
+        "@pronoun",
+        "@verb",
+        "@time"
+      ],
+      "exact": true,
+      "english": "{1} {2} {3}.",
+      "luganda": "{2} {3}."
+    },
+    {
+      "id": "question-subj-verb",
+      "match": [
+        "@question",
+        "@pronoun",
+        "@verb"
+      ],
+      "exact": true,
+      "english": "{1} {do} {2} {3}?",
+      "luganda": "{3} {1}?"
+    },
+    {
+      "id": "please-noun",
+      "match": [
+        "@noun",
+        "PLEASE"
+      ],
+      "exact": true,
+      "english": "{1}, please.",
+      "luganda": "{1}, nsaba."
+    },
+    {
+      "id": "want-noun-please",
+      "match": [
+        "@verb",
+        "@noun",
+        "PLEASE"
+      ],
+      "exact": true,
+      "english": "{2}, please.",
+      "luganda": "{2}, nsaba."
+    }
+  ],
+  "text_to_gloss": {
+    "_help": "Rules that turn a typed or spoken sentence into signs. Synonyms live in vocabulary.json.",
+    "ignore_words": [
+      "a",
+      "an",
+      "the",
+      "is",
+      "am",
+      "are",
+      "was",
+      "were",
+      "be",
+      "to",
+      "of",
+      "do",
+      "does",
+      "did",
+      "will",
+      "would",
+      "can",
+      "could",
+      "shall",
+      "should",
+      "have",
+      "has",
+      "had",
+      "it",
+      "there",
+      "very",
+      "so"
+    ],
+    "negations": [
+      "not",
+      "never",
+      "dont",
+      "don't",
+      "cannot",
+      "can't",
+      "doesn't",
+      "didn't",
+      "won't"
+    ],
+    "move_to_end_categories": [
+      "question"
+    ],
+    "time_first": true,
+    "fingerspell_unknown": true
+  }
+}

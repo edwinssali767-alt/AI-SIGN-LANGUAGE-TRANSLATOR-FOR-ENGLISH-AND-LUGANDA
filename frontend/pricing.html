@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pricing & Subscriptions - Sign Language Translator</title>
     <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="fonts.css">
     <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="brand.css">
 
 </head>
 
@@ -15,8 +17,8 @@
         <!-- Navigation -->
         <nav class="navbar">
             <div class="nav-content">
-                <h1 class="logo">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</h1>
-                <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+                <h1 class="logo"><a href="welcome.html" aria-label="AI Sign Language Translator - go to home">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</a></h1>
+                <button class="mobile-menu-btn" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
                 <ul class="nav-links">
                     <li>
                         <select id="themeSelector" data-theme-selector class="theme-selector"
@@ -28,10 +30,11 @@
                     </li>
                     <li><a href="translator.html" class="nav-link">Translator</a></li>
                     <li><a href="letters.html" class="nav-link">Letters</a></li>
+                    <li><a href="text-to-sign.html" class="nav-link">Text to Sign</a></li>
                     <li><a href="gestures.html" class="nav-link">Learn Gestures</a></li>
                     <li><a href="pricing.html" class="nav-link active">Pricing</a></li>
                     <li id="authNav">
-                        <a href="welcome.html" class="nav-link">Sign In / Sign Up</a>
+                        <a href="auth.html?mode=signin" class="nav-link nav-user" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
                     </li>
                     <li id="profileNav" style="display: none;">
                         <a href="profile.html" class="nav-link">Profile</a>
@@ -45,13 +48,14 @@
 
         <!-- Mobile Menu Overlay -->
         <div id="mobileMenu" class="mobile-menu">
-            <button class="close-menu" aria-label="Close menu">✕</button>
+            <button class="close-menu" aria-label="Close menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
             <a href="translator.html" class="nav-link">Translator</a>
             <a href="letters.html" class="nav-link">Letters</a>
+            <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
             <a href="gestures.html" class="nav-link">Learn Gestures</a>
             <a href="pricing.html" class="nav-link">Pricing</a>
-            <a href="welcome.html" class="nav-link" id="mobileAuthLink">Sign In / Sign Up</a>
-            <select id="mobileThemeSelector" class="theme-selector">
+            <a href="auth.html?mode=signin" class="nav-link nav-user" id="mobileAuthLink" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+            <select id="mobileThemeSelector" class="theme-selector" data-theme-selector>
                 <option value="system">System (Default)</option>
                 <option value="light">Light Theme</option>
                 <option value="dark">Dark Theme</option>
@@ -63,7 +67,7 @@
         <main class="main-content">
             <div class="pricing-container">
                 <!-- Subscription Status -->
-                <div id="subscriptionStatus" class="subscription-status" style="display: none;">
+                <div id="subscriptionStatus" class="subscription-status" style="display: none;" aria-live="polite">
                     <h3>Current Subscription</h3>
                     <p id="statusText">You are currently on the <strong>Basic Plan</strong>. Translations used:
                         <span id="translationCount">0</span>/10
@@ -121,56 +125,68 @@
                     <h2>Frequently Asked Questions</h2>
 
                     <div class="faq-item active">
-                        <h4 onclick="toggleFAQ(this)">
-                            What languages are supported?
-                            <span class="faq-icon">▼</span>
+                        <h4 class="faq-question">
+                            <button type="button" class="faq-toggle" aria-expanded="true" aria-controls="faq-answer-1" onclick="toggleFAQ(this)">
+                                <span>What languages are supported?</span>
+                                <span class="faq-icon" aria-hidden="true"></span>
+                            </button>
                         </h4>
-                        <p>Currently, we support English and Luganda. More languages will be added in future updates
+                        <p id="faq-answer-1">Currently, we support English and Luganda. More languages will be added in future updates
                             based on user demand.</p>
                     </div>
 
                     <div class="faq-item">
-                        <h4 onclick="toggleFAQ(this)">
-                            How are translations counted?
-                            <span class="faq-icon">▼</span>
+                        <h4 class="faq-question">
+                            <button type="button" class="faq-toggle" aria-expanded="false" aria-controls="faq-answer-2" onclick="toggleFAQ(this)">
+                                <span>How are translations counted?</span>
+                                <span class="faq-icon" aria-hidden="true"></span>
+                            </button>
                         </h4>
-                        <p>Each gesture or letter captured counts as one translation. Your translation count resets
+                        <p id="faq-answer-2">Each gesture or letter captured counts as one translation. Your translation count resets
                             monthly with a Premium subscription, or you can purchase additional translation packs.</p>
                     </div>
 
                     <div class="faq-item">
-                        <h4 onclick="toggleFAQ(this)">
-                            Can I upgrade from Basic to Premium?
-                            <span class="faq-icon">▼</span>
+                        <h4 class="faq-question">
+                            <button type="button" class="faq-toggle" aria-expanded="false" aria-controls="faq-answer-3" onclick="toggleFAQ(this)">
+                                <span>Can I upgrade from Basic to Premium?</span>
+                                <span class="faq-icon" aria-hidden="true"></span>
+                            </button>
                         </h4>
-                        <p>Yes! You can upgrade anytime. When you upgrade, you'll immediately get access to all
+                        <p id="faq-answer-3">Yes! You can upgrade anytime. When you upgrade, you'll immediately get access to all
                             Premium features. Any unused translations on your Basic plan will be carried over.</p>
                     </div>
 
                     <div class="faq-item">
-                        <h4 onclick="toggleFAQ(this)">
-                            Is there a refund policy?
-                            <span class="faq-icon">▼</span>
+                        <h4 class="faq-question">
+                            <button type="button" class="faq-toggle" aria-expanded="false" aria-controls="faq-answer-4" onclick="toggleFAQ(this)">
+                                <span>Is there a refund policy?</span>
+                                <span class="faq-icon" aria-hidden="true"></span>
+                            </button>
                         </h4>
-                        <p>We offer a 7-day money-back guarantee for new Premium subscriptions. If you're not satisfied,
+                        <p id="faq-answer-4">We offer a 7-day money-back guarantee for new Premium subscriptions. If you're not satisfied,
                             simply contact our support team.</p>
                     </div>
 
                     <div class="faq-item">
-                        <h4 onclick="toggleFAQ(this)">
-                            What happens after my free 10 translations?
-                            <span class="faq-icon">▼</span>
+                        <h4 class="faq-question">
+                            <button type="button" class="faq-toggle" aria-expanded="false" aria-controls="faq-answer-5" onclick="toggleFAQ(this)">
+                                <span>What happens after my free 10 translations?</span>
+                                <span class="faq-icon" aria-hidden="true"></span>
+                            </button>
                         </h4>
-                        <p>After using your 10 free translations, you'll be prompted to upgrade to Premium for unlimited
+                        <p id="faq-answer-5">After using your 10 free translations, you'll be prompted to upgrade to Premium for unlimited
                             translations, or you can purchase additional translation packs as needed.</p>
                     </div>
 
                     <div class="faq-item">
-                        <h4 onclick="toggleFAQ(this)">
-                            How do I contact support?
-                            <span class="faq-icon">▼</span>
+                        <h4 class="faq-question">
+                            <button type="button" class="faq-toggle" aria-expanded="false" aria-controls="faq-answer-6" onclick="toggleFAQ(this)">
+                                <span>How do I contact support?</span>
+                                <span class="faq-icon" aria-hidden="true"></span>
+                            </button>
                         </h4>
-                        <p>You can reach our support team via email at support@signlanguagetranslator.com or through
+                        <p id="faq-answer-6">You can reach our support team via email at support@signlanguagetranslator.com or through
                             the contact form on our website. Premium members get priority support.</p>
                     </div>
                 </div>
@@ -184,7 +200,9 @@
         // Toggle FAQ items
         function toggleFAQ(element) {
             const item = element.closest('.faq-item');
-            item.classList.toggle('active');
+            const open = item.classList.toggle('active');
+            const button = item.querySelector('.faq-toggle');
+            if (button) button.setAttribute('aria-expanded', String(open));
         }
 
         // Load user subscription status
@@ -313,14 +331,6 @@
             const mobileThemeSelector = document.getElementById('mobileThemeSelector');
             const themeSelector = document.getElementById('themeSelector');
             
-            if (mobileThemeSelector && themeSelector) {
-                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
-                mobileThemeSelector.addEventListener('change', function() {
-                    themeSelector.value = this.value;
-                    document.documentElement.setAttribute('data-theme', this.value);
-                    localStorage.setItem('theme', this.value);
-                });
-            }
             
             const mobileAuthLink = document.getElementById('mobileAuthLink');
             const profileNav = document.getElementById('profileNav');

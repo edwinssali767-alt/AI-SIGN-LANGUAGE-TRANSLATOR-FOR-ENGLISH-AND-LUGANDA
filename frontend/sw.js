@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sign-translator-v3';
+const CACHE_NAME = 'sign-translator-v13';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,9 +9,25 @@ const urlsToCache = [
   '/pricing.html',
   '/auth.html',
   '/profile.html',
+  '/fonts.css',
   '/style2.css',
-  '/style1.css',
+  '/brand.css',
+  '/a11y-fixes.css',
+  '/text-to-sign.html',
+  '/privacy.html',
+  '/sl-core.js',
+  '/recognizer.js',
+  '/sentence-builder.js',
+  '/text-to-gloss.js',
+  '/speech.js',
+  '/sign-to-speech.js',
+  '/sign-renderer.js',
+  '/text-to-sign.js',
+  '/nav.js',
+  '/data/vocabulary.json',
+  '/data/patterns.json',
   '/theme.js',
+  '/hero-fallback.svg',
   '/auth.js',
   '/translator.js',
   '/admin.js',
@@ -37,7 +53,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   const networkFirstDestinations = ['document', 'script', 'style'];
-  if (event.request.mode === 'navigate' || networkFirstDestinations.includes(event.request.destination)) {
+  // JSON (trained model, vocabulary, patterns) changes when retrained/edited, so it is network-first too.
+  if (event.request.mode === 'navigate' || networkFirstDestinations.includes(event.request.destination)
+      || requestUrl.pathname.endsWith('.json')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -52,10 +70,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Offline engine files (WASM, hand model, sign model, audio, clips) are big and rarely change:
+  // cache them on first use so the recognizer keeps working without a connection.
+  const cacheOnUse = /^\/(vendor\/mediapipe|models|static\/(audio|signs))\//.test(requestUrl.pathname);
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        return response || fetch(event.request).catch(() => {
+        if (response) return response;
+        return fetch(event.request).then((networkResponse) => {
+          if (cacheOnUse && networkResponse.ok) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        }).catch(() => {
           if (event.request.mode === 'navigate') {
             return caches.match('/welcome.html');
           }

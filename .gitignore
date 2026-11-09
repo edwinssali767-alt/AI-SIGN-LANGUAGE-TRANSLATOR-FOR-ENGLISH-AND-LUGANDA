@@ -6,3 +6,13 @@ __pycache__/
 
 venv/
 backend/venv/
+
+# Recorded sign data (hand-landmark numbers from signers): sensitive, keep out of git
+datasets/landmarks/
+training/reports/
+
+# Local AI-tool config (machine-specific paths, large binaries)
+.codex/
+.gemini/
+.agent/
+.agents/

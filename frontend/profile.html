@@ -6,16 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</title>
     <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="fonts.css">
     <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="brand.css">
 </head>
 
 <body>
     <nav class="navbar">
-        <div class="logo">
-            AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA
-        </div>
+        <div class="logo"><a href="welcome.html" aria-label="AI Sign Language Translator - go to home">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</a></div>
 
-        <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+        <button class="mobile-menu-btn" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 
         <ul class="nav-links">
             <li>
@@ -25,9 +25,9 @@
                     <option value="dark">Dark</option>
                 </select>
             </li>
-            <li><a href="welcome.html">Home</a></li>
             <li><a href="translator.html">Translator</a></li>
             <li><a href="letters.html">Letters</a></li>
+            <li><a href="text-to-sign.html">Text to Sign</a></li>
             <li><a href="gestures.html">Gestures</a></li>
             <li><a href="pricing.html">Pricing</a></li>
             <li id="logoutNav"><a href="#" onclick="logout(event)">Logout</a></li>
@@ -36,14 +36,14 @@
 
     <!-- Mobile Menu Overlay -->
     <div id="mobileMenu" class="mobile-menu">
-        <button class="close-menu" aria-label="Close menu">✕</button>
-        <a href="welcome.html" class="nav-link">Home</a>
+        <button class="close-menu" aria-label="Close menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <a href="translator.html" class="nav-link">Translator</a>
         <a href="letters.html" class="nav-link">Letters</a>
+            <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
         <a href="gestures.html" class="nav-link">Gestures</a>
         <a href="pricing.html" class="nav-link">Pricing</a>
         <a href="#" class="nav-link" onclick="logout(event)">Logout</a>
-        <select id="mobileThemeSelector" class="theme-selector">
+        <select id="mobileThemeSelector" class="theme-selector" data-theme-selector>
             <option value="system">System (Default)</option>
             <option value="light">Light Theme</option>
             <option value="dark">Dark Theme</option>
@@ -196,14 +196,6 @@
             const mobileThemeSelector = document.getElementById('mobileThemeSelector');
             const themeSelector = document.getElementById('themeSelector');
             
-            if (mobileThemeSelector && themeSelector) {
-                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
-                mobileThemeSelector.addEventListener('change', function() {
-                    themeSelector.value = this.value;
-                    document.documentElement.setAttribute('data-theme', this.value);
-                    localStorage.setItem('theme', this.value);
-                });
-            }
             
             document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
                 link.addEventListener('click', function() {
