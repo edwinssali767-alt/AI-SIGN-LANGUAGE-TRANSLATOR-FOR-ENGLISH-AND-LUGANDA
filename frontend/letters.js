@@ -78,7 +78,7 @@ class LetterCapture {
                 }
             };
 
-            this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            this.stream = await requestCameraStream(constraints);
             this.video.srcObject = this.stream;
 
             this.isCapturing = true;
@@ -334,9 +334,9 @@ class LetterCapture {
     renderLetterGallery(letters) {
         this.elements.letterGallery.innerHTML = letters
             .map(item => `
-                <div class="gallery-item" data-letter="${item.letter}" title="${item.description}">
+                <button type="button" class="gallery-item" data-letter="${item.letter}" title="${item.description}">
                     ${item.letter}
-                </div>
+                </button>
             `)
             .join('');
 

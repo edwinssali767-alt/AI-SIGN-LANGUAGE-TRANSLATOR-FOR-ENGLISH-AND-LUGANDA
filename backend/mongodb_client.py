@@ -1,6 +1,7 @@
 """MongoDB Atlas client with a SQLite fallback for local development."""
 
 import sqlite3
+import threading
 from types import SimpleNamespace
 
 from pymongo import MongoClient
@@ -262,18 +263,36 @@ def get_sqlite_collection(table_name):
     return SQLiteCollection(table_name)
 
 
+_MONGO_CLIENT = None
+_MONGO_CLIENT_URI = None
+_MONGO_LOCK = threading.Lock()
+
+
 def get_mongo_client():
-    """Get or create MongoDB client instance."""
+    """Return the shared MongoClient (thread-safe, pooled, created once per process).
+
+    Creating a client per request costs a DNS SRV lookup, TLS handshake and
+    auth round-trip every time, which made every API call take several seconds.
+    """
+    global _MONGO_CLIENT, _MONGO_CLIENT_URI
     if not use_mongodb():
         raise ValueError("MONGODB_URI not configured")
 
-    client = getattr(g, '_mongo_client', None)
-    if client is None:
-        mongo_uri = current_app.config.get('MONGODB_URI')
-        if not mongo_uri:
-            raise ValueError("MONGODB_URI not configured")
-        client = g._mongo_client = MongoClient(mongo_uri)
-    return client
+    mongo_uri = current_app.config.get('MONGODB_URI')
+    if not mongo_uri:
+        raise ValueError("MONGODB_URI not configured")
+
+    if _MONGO_CLIENT is None or _MONGO_CLIENT_URI != mongo_uri:
+        with _MONGO_LOCK:
+            if _MONGO_CLIENT is None or _MONGO_CLIENT_URI != mongo_uri:
+                _MONGO_CLIENT = MongoClient(
+                    mongo_uri,
+                    maxPoolSize=20,
+                    serverSelectionTimeoutMS=8000,
+                    connectTimeoutMS=8000,
+                )
+                _MONGO_CLIENT_URI = mongo_uri
+    return _MONGO_CLIENT
 
 
 def get_mongo_db():
@@ -344,11 +363,8 @@ def get_tutorials_collection():
 
 
 def close_mongo_client(error):
-    """Close MongoDB connection."""
-    client = getattr(g, '_mongo_client', None)
-    if client is not None:
-        client.close()
-        g._mongo_client = None
+    """No-op: the shared MongoClient lives for the whole process."""
+    return None
 
 
 def init_mongodb_indexes():

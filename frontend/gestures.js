@@ -158,7 +158,7 @@ function createGestureCard(gesture) {
         </div>
 
         <div class="gesture-footer">
-            <button class="gesture-btn" onclick="openModal(${gesture.id})">View Details</button>
+            <button type="button" class="gesture-btn" onclick="openModal('${gesture.id}')">View Details</button>
         </div>
     `;
 

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Sign | AI Sign Language Translator</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="fonts.css">
+    <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="brand.css">
+    <link rel="stylesheet" href="a11y-fixes.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-content">
+                <h1 class="logo"><a href="welcome.html" aria-label="AI Sign Language Translator - go to home">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</a></h1>
+                <button class="mobile-menu-btn" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+                <ul class="nav-links">
+                    <li>
+                        <select id="themeSelector" data-theme-selector class="theme-selector"
+                            aria-label="Theme selector">
+                            <option value="system">System (Default)</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </li>
+                    <li><a href="translator.html" class="nav-link">Translator</a></li>
+                    <li><a href="letters.html" class="nav-link">Letters</a></li>
+                    <li><a href="text-to-sign.html" class="nav-link active" aria-current="page">Text to Sign</a></li>
+                    <li><a href="gestures.html" class="nav-link">Learn Gestures</a></li>
+                    <li><a href="pricing.html" class="nav-link">Pricing</a></li>
+                    <li><a href="admin.html" class="nav-link">Admin</a></li>
+                    <li id="authNav">
+                        <a href="auth.html?mode=signin" class="nav-link nav-user" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+                    </li>
+                    <li id="profileNav" style="display: none;">
+                        <a href="profile.html" class="nav-link">Profile</a>
+                    </li>
+                    <li id="logoutNav" style="display: none;">
+                        <a href="#" class="nav-link" onclick="logout(event)">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" class="mobile-menu">
+            <button class="close-menu" aria-label="Close menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <a href="translator.html" class="nav-link">Translator</a>
+            <a href="letters.html" class="nav-link">Letters</a>
+            <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
+            <a href="gestures.html" class="nav-link">Learn Gestures</a>
+            <a href="pricing.html" class="nav-link">Pricing</a>
+            <a href="admin.html" class="nav-link">Admin</a>
+            <a href="auth.html?mode=signin" class="nav-link nav-user" id="mobileAuthLink" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+            <select id="mobileThemeSelector" class="theme-selector" data-theme-selector>
+                <option value="system">System (Default)</option>
+                <option value="light">Light Theme</option>
+                <option value="dark">Dark Theme</option>
+            </select>
+        </div>
+
+        <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <section class="tts-section">
+                <div class="translator-head">
+                    <div>
+                        <h2>Text to Sign</h2>
+                        <p class="subtitle">Type or say a sentence and watch it signed, one sign at a time.</p>
+                    </div>
+                </div>
+
+                <div class="tts-layout">
+                    <form class="tts-input" id="ttsForm" novalidate>
+                        <label for="ttsText" class="tts-label">Sentence</label>
+                        <textarea id="ttsText" rows="3" placeholder="For example: Where is the toilet?" spellcheck="false"></textarea>
+                        <fieldset class="s2s-lang">
+                            <legend>I am writing in</legend>
+                            <label><input type="radio" name="ttsLang" value="english" checked> English</label>
+                            <label><input type="radio" name="ttsLang" value="luganda"> Luganda</label>
+                        </fieldset>
+                        <div class="tts-buttons">
+                            <button type="submit" class="btn btn-primary" id="ttsShow">Show signs</button>
+                            <button type="button" class="btn btn-secondary" id="ttsMic" hidden>Speak instead</button>
+                        </div>
+                        <p id="ttsMicNote" class="s2s-hint" role="status" aria-live="polite"></p>
+
+                        <div class="tts-signs">
+                            <h3 class="s2s-label" id="ttsSignsLabel">Signs</h3>
+                            <ol id="ttsList" class="s2s-chips" aria-labelledby="ttsSignsLabel"></ol>
+                            <p id="ttsListEmpty" class="s2s-empty">Nothing to show yet.</p>
+                        </div>
+                    </form>
+
+                    <div class="tts-player" aria-label="Sign player">
+                        <div class="tts-stage" id="ttsStage" role="img" aria-label="Sign display"></div>
+                        <p class="tts-caption" id="ttsCaption" role="status" aria-live="polite">Your signs will appear here.</p>
+                        <div class="tts-controls">
+                            <button type="button" class="btn btn-primary" id="ttsPlay" disabled>Play</button>
+                            <button type="button" class="btn btn-secondary" id="ttsReplay" disabled>Replay</button>
+                            <button type="button" class="btn btn-secondary" id="ttsPrev" disabled aria-label="Previous sign">Back</button>
+                            <button type="button" class="btn btn-secondary" id="ttsNext" disabled aria-label="Next sign">Next</button>
+                        </div>
+                        <div class="tts-sliders">
+                            <label for="ttsSpeed">Signing speed <output id="ttsSpeedOut">1.0x</output>
+                                <input type="range" id="ttsSpeed" min="0.5" max="1.5" step="0.1" value="1">
+                            </label>
+                            <label for="ttsGap">Pause between signs <output id="ttsGapOut">0.4 s</output>
+                                <input type="range" id="ttsGap" min="0" max="2" step="0.1" value="0.4">
+                            </label>
+                            <label class="tts-check"><input type="checkbox" id="ttsVoice"> Also say the sentence aloud (English)</label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="theme.js"></script>
+    <script src="auth.js?v=20260611"></script>
+    <script src="nav.js"></script>
+    <script src="text-to-gloss.js"></script>
+    <script src="speech.js"></script>
+    <script src="sign-renderer.js"></script>
+    <script src="text-to-sign.js"></script>
+</body>
+
+</html>

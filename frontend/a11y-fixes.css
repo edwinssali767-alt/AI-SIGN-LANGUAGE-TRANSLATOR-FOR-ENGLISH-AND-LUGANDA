@@ -1,0 +1,35 @@
+/* Accessibility and responsiveness fixes for the translator, letters and admin pages.
+   Loaded after brand.css on those pages. (The old crimson contrast overrides were removed when
+   the palette changed to charcoal / sand / electric blue: brand.css now carries contrast-safe tokens.) */
+
+/* Touch targets: at least 44x44 CSS px for buttons and form controls. */
+.btn,
+button.btn,
+select,
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+    min-height: 44px;
+}
+input[type="checkbox"],
+input[type="radio"] {
+    width: 22px;
+    height: 22px;
+}
+
+/* Reduced motion: keep state changes, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+    .btn,
+    .btn:hover,
+    .btn:active {
+        transform: none;
+        transition: none;
+    }
+}
+
+/* Narrow phones: nothing may force horizontal scrolling. */
+img,
+video,
+canvas {
+    max-width: 100%;
+}

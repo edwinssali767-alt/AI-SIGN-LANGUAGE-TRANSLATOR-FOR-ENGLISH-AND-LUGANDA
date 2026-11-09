@@ -6,7 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</title>
     <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="fonts.css">
     <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="brand.css">
+    <link rel="stylesheet" href="a11y-fixes.css">
 </head>
 
 <body>
@@ -14,8 +17,8 @@
         <!-- Navigation -->
         <nav class="navbar">
             <div class="nav-content">
-                <h1 class="logo">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</h1>
-                <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+                <h1 class="logo"><a href="welcome.html" aria-label="AI Sign Language Translator - go to home">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</a></h1>
+                <button class="mobile-menu-btn" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
                 <ul class="nav-links">
                     <li>
                         <select id="themeSelector" data-theme-selector class="theme-selector"
@@ -27,11 +30,12 @@
                     </li>
                     <li><a href="translator.html" class="nav-link active">Translator</a></li>
                     <li><a href="letters.html" class="nav-link">Letters</a></li>
+                    <li><a href="text-to-sign.html" class="nav-link">Text to Sign</a></li>
                     <li><a href="gestures.html" class="nav-link">Learn Gestures</a></li>
                     <li><a href="pricing.html" class="nav-link">Pricing</a></li>
                     <li><a href="admin.html" class="nav-link">Admin</a></li>
                     <li id="authNav">
-                        <a href="welcome.html" class="nav-link">Sign In / Sign Up</a>
+                        <a href="auth.html?mode=signin" class="nav-link nav-user" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
                     </li>
                     <li id="profileNav" style="display: none;">
                         <a href="profile.html" class="nav-link">Profile</a>
@@ -45,14 +49,15 @@
 
         <!-- Mobile Menu Overlay -->
         <div id="mobileMenu" class="mobile-menu">
-            <button class="close-menu" aria-label="Close menu">✕</button>
+            <button class="close-menu" aria-label="Close menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
             <a href="translator.html" class="nav-link">Translator</a>
             <a href="letters.html" class="nav-link">Letters</a>
+            <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
             <a href="gestures.html" class="nav-link">Learn Gestures</a>
             <a href="pricing.html" class="nav-link">Pricing</a>
             <a href="admin.html" class="nav-link">Admin</a>
-            <a href="welcome.html" class="nav-link" id="mobileAuthLink">Sign In / Sign Up</a>
-            <select id="mobileThemeSelector" class="theme-selector">
+            <a href="auth.html?mode=signin" class="nav-link nav-user" id="mobileAuthLink" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+            <select id="mobileThemeSelector" class="theme-selector" data-theme-selector>
                 <option value="system">System (Default)</option>
                 <option value="light">Light Theme</option>
                 <option value="dark">Dark Theme</option>
@@ -64,105 +69,191 @@
         <!-- Main Content -->
         <main class="main-content">
             <section class="translator-section">
-                <h2>For English & Luganda</h2>
-                <p class="subtitle">Capture your hand gesture to get instant translation</p>
 
-                <div class="history-badge" id="historyBadge" aria-live="polite">
-                    Translation history: <strong id="historyCountValue">0</strong>
-                    <span id="translationLabel"
-                        style="margin-left: 15px; font-weight: 600; color: var(--primary);">Translation
-                        (English):</span>
+                <div class="translator-head">
+                    <div>
+                        <h2>For English & Luganda</h2>
+                        <p class="subtitle">Capture your hand gesture to get instant translation</p>
+                    </div>
+
+                    <!-- Language Selection -->
+                    <div class="language-selector">
+                        <label for="targetLanguage">Target language</label>
+                        <select id="targetLanguage" class="raised-select">
+                            <option value="english">English</option>
+                            <option value="luganda">Luganda</option>
+                        </select>
+                    </div>
                 </div>
 
-                <!-- Language Selection -->
-                <div class="language-selector">
-                    <label>Target Language:</label>
-                    <select id="targetLanguage">
-                        <option value="english">English</option>
-                        <option value="luganda">Luganda</option>
-                    </select>
-                </div>
+                <div class="slab-card translator-card">
+                    <div class="translator-grid">
 
-                <!-- Camera/Upload Section -->
-                <div class="gesture-input">
-                    <div class="camera-container">
-                        <div class="camera-section">
-                            <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
-                            <canvas id="photoCanvas" style="display:none;"></canvas>
+                        <!-- LEFT: camera -->
+                        <div class="camera-col">
+                            <div class="camera-frame" id="cameraFrame">
+                                <video id="cameraFeed" class="camera-feed" autoplay playsinline muted></video>
+                                <!-- Overlay for hand landmarks (drawn only when the backend sends landmarks) -->
+                                <canvas id="landmarkCanvas" class="landmark-canvas" aria-hidden="true"></canvas>
+                                <canvas id="photoCanvas" style="display:none;"></canvas>
+                                <span class="corner corner-tl" aria-hidden="true"></span>
+                                <span class="corner corner-tr" aria-hidden="true"></span>
+                                <span class="corner corner-bl" aria-hidden="true"></span>
+                                <span class="corner corner-br" aria-hidden="true"></span>
+                                <span class="live-pill" id="livePill" hidden><span class="live-dot"></span>Live</span>
+                            </div>
                         </div>
 
+                        <!-- RIGHT: controls + result -->
+                        <div class="control-col">
+                            <div class="controls btn-grid">
+                                <button type="button" id="startCameraBtn" class="btn btn-primary btn-wide">Start Camera</button>
+                                <button type="button" id="realtimeBtn" class="btn btn-secondary" disabled>Real-time</button>
+                                <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture</button>
+                                <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop</button>
+                                <button type="button" id="switchCameraBtn" class="btn btn-secondary" disabled>Switch</button>
+                            </div>
+
+                            <div class="translation-card" id="translationCard" aria-live="polite">
+                                <div class="translation-body">
+                                    <span id="translationLabel" class="card-label">Translation (English):</span>
+                                    <p id="liveEnglishTranslation" class="word-en">-</p>
+                                    <span class="card-label">Luganda</span>
+                                    <p id="liveLugandaTranslation" class="word-lg">-</p>
+                                    <div class="confidence" id="confidenceMeter">
+                                        <div class="confidence-track"><div class="confidence-fill" id="confidenceFill"></div></div>
+                                        <span class="confidence-text" id="confidenceText">Confidence -</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="history-badge pill" id="historyBadge" aria-live="polite">
+                                <span>Translation history: <strong id="historyCountValue">0</strong></span>
+                                <a href="profile.html" class="pill-link">View all</a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
 
 
-                        <div class="controls">
-                            <button type="button" id="startCameraBtn" class="btn btn-primary">Start Camera</button>
-                            <button type="button" id="realtimeBtn" class="btn btn-secondary" disabled>Real-time</button>
-                            <button type="button" id="captureBtn" class="btn btn-secondary" disabled>Capture</button>
-                            <button type="button" id="stopCameraBtn" class="btn btn-secondary" disabled>Stop</button>
-                            <button type="button" id="switchCameraBtn" class="btn btn-secondary"
-                                disabled>Switch</button>
+                <section class="s2s" id="signToSpeech" aria-labelledby="s2sTitle">
+                    <div class="s2s-head">
+                        <h3 id="s2sTitle">Signs to sentence</h3>
+                        <p class="s2s-sub">Sign in front of the camera. When you lower your hand for 1.5 seconds, your signs become a sentence. Check it, edit it if needed, then press Speak.</p>
+                    </div>
+
+                    <div class="s2s-bar">
+                        <button type="button" id="s2sStart" class="btn btn-primary">Start recognition</button>
+                        <button type="button" id="s2sDone" class="btn btn-secondary" disabled>Done</button>
+                        <span id="s2sStatus" class="s2s-status" role="status" aria-live="polite">Offline recognition is off.</span>
+                    </div>
+                    <p id="s2sHint" class="s2s-hint" role="status" aria-live="polite"></p>
+
+                    <div class="s2s-grid">
+                        <div class="s2s-col">
+                            <h4 class="s2s-label" id="s2sSignsLabel">Signs so far</h4>
+                            <ol id="s2sChips" class="s2s-chips" aria-labelledby="s2sSignsLabel"></ol>
+                            <p id="s2sEmpty" class="s2s-empty">None yet.</p>
+                            <div class="s2s-add">
+                                <label for="s2sPicker">Add a sign by hand</label>
+                                <div class="s2s-add-row">
+                                    <select id="s2sPicker"></select>
+                                    <button type="button" id="s2sAdd" class="btn btn-secondary">Add</button>
+                                    <button type="button" id="s2sUndo" class="btn btn-secondary">Undo</button>
+                                    <button type="button" id="s2sClear" class="btn btn-secondary">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="s2s-col">
+                            <h4 class="s2s-label">Sentence (you can edit it)</h4>
+                            <label class="s2s-field" for="s2sEnglish"><span>English</span>
+                                <textarea id="s2sEnglish" rows="2" spellcheck="false"></textarea>
+                            </label>
+                            <label class="s2s-field" for="s2sLuganda"><span>Luganda</span>
+                                <textarea id="s2sLuganda" rows="2" spellcheck="false"></textarea>
+                            </label>
+                            <p id="s2sMatch" class="s2s-hint"></p>
+
+                            <div class="s2s-voice">
+                                <fieldset class="s2s-lang">
+                                    <legend>Speak in</legend>
+                                    <label><input type="radio" name="s2sLang" value="english" checked> English</label>
+                                    <label><input type="radio" name="s2sLang" value="luganda"> Luganda</label>
+                                </fieldset>
+                                <label class="s2s-rate" for="s2sRate">Speed <output id="s2sRateOut">1.0x</output>
+                                    <input type="range" id="s2sRate" min="0.5" max="1.5" step="0.1" value="1">
+                                </label>
+                            </div>
+                            <div class="s2s-actions">
+                                <button type="button" id="s2sSpeak" class="btn btn-primary" disabled>Speak</button>
+                                <button type="button" id="s2sRepeat" class="btn btn-secondary" disabled>Repeat</button>
+                            </div>
+                            <p id="s2sVoiceNote" class="s2s-hint" role="status" aria-live="polite"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="bottom-panels">
+                    <!-- Result Display -->
+                    <div id="resultContainer" class="result-container hidden">
+                        <div class="result-card">
+                            <h3>Translation Result</h3>
+                            <div class="result-image">
+                                <img id="resultImage" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="Captured gesture">
+                            </div>
+                            <div class="translation-result">
+                                <div class="result-item">
+                                    <span class="label">Detected:</span>
+                                    <span id="detectedGesture" class="value">-</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="label">Translation:</span>
+                                    <span id="translationResult" class="value translation">-</span>
+                                </div>
+                            </div>
+                            <button type="button" id="newTranslationBtn" class="btn btn-primary">Try Another</button>
+                        </div>
+                    </div>
+
+                    <!-- Feedback Display -->
+                    <div id="feedbackContainer" class="translation-feedback hidden">
+                        <h4 class="feedback-title">Translation Feedback</h4>
+                        <div class="feedback-content">
+                            <div class="feedback-item">
+                                <span class="feedback-label">Confidence</span>
+                                <span id="confidenceValue" class="feedback-value">-</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Gesture</span>
+                                <span id="gestureValue" class="feedback-value">-</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Language</span>
+                                <span id="langValue" class="feedback-value">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-    </div>
 
-    <div class="bottom-panels">
-        <!-- Result Display -->
-        <div id="resultContainer" class="result-container hidden">
-            <div class="result-card">
-                <h3>Translation Result</h3>
-                <div class="result-image">
-                    <img id="resultImage" src="" alt="Captured gesture">
-                </div>
-                <div class="translation-result">
-                    <div class="result-item">
-                        <span class="label">Detected:</span>
-                        <span id="detectedGesture" class="value">-</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Translation:</span>
-                        <span id="translationResult" class="value translation">-</span>
+                <!-- Error Display -->
+                <div id="errorContainer" class="error-container hidden">
+                    <div class="error-message">
+                        <span id="errorMessage"></span>
+                        <button type="button" id="closeErrorBtn" class="btn-close" aria-label="Dismiss error"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
                     </div>
                 </div>
-                <button type="button" id="newTranslationBtn" class="btn btn-primary">Try Another</button>
-            </div>
-        </div>
 
-        <!-- Feedback Display -->
-        <div id="feedbackContainer" class="translation-feedback hidden">
-            <h4 class="feedback-title">Translation Feedback</h4>
-            <div class="feedback-content">
-                <div class="feedback-item">
-                    <span class="feedback-label">Confidence</span>
-                    <span id="confidenceValue" class="feedback-value">-</span>
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Processing gesture...</p>
                 </div>
-                <div class="feedback-item">
-                    <span class="feedback-label">Gesture</span>
-                    <span id="gestureValue" class="feedback-value">-</span>
-                </div>
-                <div class="feedback-item">
-                    <span class="feedback-label">Language</span>
-                    <span id="langValue" class="feedback-value">-</span>
-                </div>
-            </div>
-        </div>
+
+            </section>
+        </main>
     </div>
-
-    <!-- Error Display -->
-    <div id="errorContainer" class="error-container hidden">
-        <div class="error-message">
-            <span id="errorMessage"></span>
-            <button id="closeErrorBtn" class="btn-close">✕</button>
-        </div>
-    </div>
-
-    <!-- Loading Indicator -->
-    <div id="loadingIndicator" class="loading hidden">
-        <div class="spinner"></div>
-        <p>Processing gesture...</p>
-    </div>
-
-
-    </main>
 
     <!-- Subscription Limit Modal -->
     <!-- Subscription Limit Modal -->
@@ -210,7 +301,14 @@
 
     <script src="theme.js"></script>
     <script src="auth.js?v=20260611"></script>
-    <script src="translator.js?v=999"></script>
+    <script src="camera-permission.js"></script>
+    <script src="translator.js?v=1000"></script>
+    <script src="translator-ui.js"></script>
+    <script src="sl-core.js"></script>
+    <script src="recognizer.js"></script>
+    <script src="sentence-builder.js"></script>
+    <script src="speech.js"></script>
+    <script src="sign-to-speech.js"></script>
     <script>
         function goToUpgrade() {
             window.location.href = 'pricing.html';
@@ -255,14 +353,6 @@
             const mobileThemeSelector = document.getElementById('mobileThemeSelector');
             const themeSelector = document.getElementById('themeSelector');
 
-            if (mobileThemeSelector && themeSelector) {
-                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
-                mobileThemeSelector.addEventListener('change', function () {
-                    themeSelector.value = this.value;
-                    document.documentElement.setAttribute('data-theme', this.value);
-                    localStorage.setItem('theme', this.value);
-                });
-            }
 
             const mobileAuthLink = document.getElementById('mobileAuthLink');
             const profileNav = document.getElementById('profileNav');

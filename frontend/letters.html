@@ -6,7 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Letter Capture - Sign Language Translator</title>
     <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="fonts.css">
     <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="brand.css">
+    <link rel="stylesheet" href="a11y-fixes.css">
 </head>
 
 <body>
@@ -14,8 +17,8 @@
         <!-- Navigation -->
         <nav class="navbar">
             <div class="nav-content">
-                <h1 class="logo">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</h1>
-                <button class="mobile-menu-btn" aria-label="Open menu">☰</button>
+                <h1 class="logo"><a href="welcome.html" aria-label="AI Sign Language Translator - go to home">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</a></h1>
+                <button class="mobile-menu-btn" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
                 <ul class="nav-links">
                     <li>
                         <select id="themeSelector" data-theme-selector class="theme-selector"
@@ -27,10 +30,11 @@
                     </li>
                     <li><a href="translator.html" class="nav-link">Translator</a></li>
                     <li><a href="letters.html" class="nav-link active">Letters</a></li>
+                    <li><a href="text-to-sign.html" class="nav-link">Text to Sign</a></li>
                     <li><a href="gestures.html" class="nav-link">Learn Gestures</a></li>
                     <li><a href="pricing.html" class="nav-link">Pricing</a></li>
                     <li id="authNav">
-                        <a href="welcome.html" class="nav-link">Sign In / Sign Up</a>
+                        <a href="auth.html?mode=signin" class="nav-link nav-user" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
                     </li>
                     <li id="profileNav" style="display: none;">
                         <a href="profile.html" class="nav-link">Profile</a>
@@ -44,13 +48,14 @@
 
         <!-- Mobile Menu Overlay -->
         <div id="mobileMenu" class="mobile-menu">
-            <button class="close-menu" aria-label="Close menu">✕</button>
+            <button class="close-menu" aria-label="Close menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
             <a href="translator.html" class="nav-link">Translator</a>
             <a href="letters.html" class="nav-link">Letters</a>
+            <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
             <a href="gestures.html" class="nav-link">Learn Gestures</a>
             <a href="pricing.html" class="nav-link">Pricing</a>
-            <a href="welcome.html" class="nav-link" id="mobileAuthLink">Sign In / Sign Up</a>
-            <select id="mobileThemeSelector" class="theme-selector">
+            <a href="auth.html?mode=signin" class="nav-link nav-user" id="mobileAuthLink" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+            <select id="mobileThemeSelector" class="theme-selector" data-theme-selector>
                 <option value="system">System (Default)</option>
                 <option value="light">Light Theme</option>
                 <option value="dark">Dark Theme</option>
@@ -80,7 +85,11 @@
             <section class="capture-section">
                 <!-- Camera & Capture Area -->
                 <div class="capture-area">
-                    <video id="videoFeed" autoplay playsinline></video>
+                    <div class="camera-frame camera-frame-letters" id="cameraFrame">
+                        <video id="videoFeed" autoplay playsinline muted></video>
+                        <span class="live-pill is-off" id="cameraPill"><span class="live-dot"></span><span id="cameraPillText">Camera off</span></span>
+                        <span class="camera-placeholder" id="cameraPlaceholder" aria-hidden="true">Press Start Camera to begin</span>
+                    </div>
                     <div class="capture-controls">
                         <button id="startCameraBtn" class="btn btn-primary">Start Camera</button>
                         <button id="stopCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
@@ -90,7 +99,7 @@
 
                 <!-- Real-time Letter Display -->
                 <div class="display-section">
-                    <div class="recognized-letters">
+                    <div class="recognized-letters" aria-live="polite">
                         <h3>Recognized Letters:</h3>
                         <div id="letterDisplay" class="letter-display">
                             <span class="placeholder">Captured letters will appear here...</span>
@@ -98,15 +107,18 @@
                     </div>
 
                     <!-- Current Letter -->
-                    <div class="current-letter">
+                    <div class="current-letter" aria-live="polite">
                         <h3>Current Letter:</h3>
                         <div id="currentLetterBox" class="letter-box">
+                            <!-- Decorative faces: together with #currentLetter they form an isometric cube -->
+                            <span class="cube-face cube-top" aria-hidden="true"></span>
+                            <span class="cube-face cube-right" aria-hidden="true"></span>
                             <span id="currentLetter" class="current">-</span>
                         </div>
                     </div>
 
                     <!-- Spelled Word -->
-                    <div class="spelled-word">
+                    <div class="spelled-word" aria-live="polite">
                         <h3>Spelled Word:</h3>
                         <div id="spellWord" class="spell-word-display">
                             <input type="text" id="wordInput" placeholder="Your spelled word will appear here" readonly>
@@ -177,7 +189,9 @@
 
     <script src="theme.js"></script>
     <script src="auth.js?v=20260611"></script>
+    <script src="camera-permission.js"></script>
     <script src="letters.js"></script>
+    <script src="letters-ui.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
@@ -209,14 +223,6 @@
             const mobileThemeSelector = document.getElementById('mobileThemeSelector');
             const themeSelector = document.getElementById('themeSelector');
             
-            if (mobileThemeSelector && themeSelector) {
-                mobileThemeSelector.value = localStorage.getItem('theme') || 'system';
-                mobileThemeSelector.addEventListener('change', function() {
-                    themeSelector.value = this.value;
-                    document.documentElement.setAttribute('data-theme', this.value);
-                    localStorage.setItem('theme', this.value);
-                });
-            }
             
             const mobileAuthLink = document.getElementById('mobileAuthLink');
             const profileNav = document.getElementById('profileNav');

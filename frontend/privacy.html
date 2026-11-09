@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy | AI Sign Language Translator</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="fonts.css">
+    <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="brand.css">
+    <link rel="stylesheet" href="a11y-fixes.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-content">
+                <h1 class="logo"><a href="welcome.html" aria-label="AI Sign Language Translator - go to home">AI SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA</a></h1>
+                <button class="mobile-menu-btn" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+                <ul class="nav-links">
+                    <li>
+                        <select id="themeSelector" data-theme-selector class="theme-selector"
+                            aria-label="Theme selector">
+                            <option value="system">System (Default)</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </li>
+                    <li><a href="translator.html" class="nav-link">Translator</a></li>
+                    <li><a href="letters.html" class="nav-link">Letters</a></li>
+                    <li><a href="text-to-sign.html" class="nav-link">Text to Sign</a></li>
+                    <li><a href="gestures.html" class="nav-link">Learn Gestures</a></li>
+                    <li><a href="pricing.html" class="nav-link">Pricing</a></li>
+                    <li><a href="admin.html" class="nav-link">Admin</a></li>
+                    <li id="authNav">
+                        <a href="auth.html?mode=signin" class="nav-link nav-user" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+                    </li>
+                    <li id="profileNav" style="display: none;">
+                        <a href="profile.html" class="nav-link">Profile</a>
+                    </li>
+                    <li id="logoutNav" style="display: none;">
+                        <a href="#" class="nav-link" onclick="logout(event)">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" class="mobile-menu">
+            <button class="close-menu" aria-label="Close menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <a href="translator.html" class="nav-link">Translator</a>
+            <a href="letters.html" class="nav-link">Letters</a>
+            <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
+            <a href="gestures.html" class="nav-link">Learn Gestures</a>
+            <a href="pricing.html" class="nav-link">Pricing</a>
+            <a href="admin.html" class="nav-link">Admin</a>
+            <a href="auth.html?mode=signin" class="nav-link nav-user" id="mobileAuthLink" aria-label="Sign in or sign up" title="Sign in / Sign up"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+            <select id="mobileThemeSelector" class="theme-selector" data-theme-selector>
+                <option value="system">System (Default)</option>
+                <option value="light">Light Theme</option>
+                <option value="dark">Dark Theme</option>
+            </select>
+        </div>
+
+        <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <article class="prose">
+                <h2>Privacy and camera use</h2>
+                <p>This translator needs your camera to see your hands. Here is exactly what happens with it.</p>
+
+                <h3>Video is never stored</h3>
+                <p>We do not record, save or keep video or photos from your camera. Nothing you sign is kept as a picture.</p>
+
+                <h3>Signs to sentence runs on your device</h3>
+                <p>The &ldquo;Signs to sentence&rdquo; panel finds your hand and works out the sign inside your browser. No camera image leaves your phone or computer, and it keeps working without an internet connection after the first visit.</p>
+
+                <h3>The older Capture and Real-time buttons</h3>
+                <p>These send one frame at a time to this server so it can name the sign. The frame is processed in memory and thrown away. Only the resulting word is saved in your translation history, if you are signed in.</p>
+
+                <h3>Helping to improve the translator</h3>
+                <p>Administrators can record sign examples to train the translator. Only a list of hand-point coordinates is saved, never video or photos, and only after the signer ticks a consent box. A signer is identified by a code, not a name. Ask an administrator to remove your recordings at any time.</p>
+
+                <h3>Speech input</h3>
+                <p>If you use &ldquo;Speak instead&rdquo; on the Text to Sign page, your browser may send the audio to its own speech service. Typing never leaves your device.</p>
+
+                <h3>Your choices</h3>
+                <p>You can turn the camera off at any time with the Stop button, and withdraw camera permission in your browser settings.</p>
+            </article>
+        </main>
+    </div>
+
+    <script src="theme.js"></script>
+    <script src="auth.js?v=20260611"></script>
+    <script src="nav.js"></script>
+</body>
+
+</html>

@@ -2,6 +2,7 @@
 
 import base64
 import io
+import threading
 from collections import deque
 from pathlib import Path
 
@@ -35,6 +36,50 @@ class GestureProcessor:
             'father': 'father',
         }
         self.load_models()
+
+    HAND_MODEL_PATH = PROJECT_ROOT_DIR / 'frontend' / 'models' / 'hand_landmarker.task'
+
+    def _hand_detector(self):
+        """Lazily create a MediaPipe hand detector (offline, same model the browser uses)."""
+        if getattr(self, '_detector_failed', False):
+            return None
+        if getattr(self, '_detector', None) is None:
+            try:
+                import mediapipe as mp
+                from mediapipe.tasks import python as mp_tasks
+                from mediapipe.tasks.python import vision
+                options = vision.HandLandmarkerOptions(
+                    base_options=mp_tasks.BaseOptions(model_asset_path=str(self.HAND_MODEL_PATH)),
+                    num_hands=1,
+                    running_mode=vision.RunningMode.IMAGE,
+                )
+                self._mp = mp
+                self._detector = vision.HandLandmarker.create_from_options(options)
+                self._detector_lock = threading.Lock()
+            except Exception as exc:
+                print(f'[WARN] Hand detector unavailable, legacy recognition is disabled: {exc}')
+                self._detector_failed = True
+                return None
+        return self._detector
+
+    def hand_present(self, image):
+        """True only if a real hand is found. The old pixel model reacts to brightness and edges, so it
+        must never be trusted on a picture that has no hand in it (it said 'hello' for a blank wall)."""
+        detector = self._hand_detector()
+        if detector is None:
+            return False
+        try:
+            if hasattr(image, 'convert'):
+                rgb = np.array(image.convert('RGB'))
+            else:
+                gray = (np.asarray(image) * 255).astype(np.uint8)
+                rgb = np.stack([gray] * 3, axis=-1)
+            with self._detector_lock:
+                result = detector.detect(self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb))
+            return bool(result.hand_landmarks)
+        except Exception as exc:
+            print(f'Hand check error: {exc}')
+            return False
 
     def load_models(self):
         """Load trained gesture models and scalers from the backend models directory."""
@@ -207,6 +252,8 @@ class GestureProcessor:
         """Predict a gesture from the buffered motion frames."""
         if not self.has_enough_frames() or self.motion_model is None or self.motion_scaler is None:
             return None
+        if not self.hand_present(self.frame_buffer[-1]):
+            return None
 
         try:
             frames_array = np.array(list(self.frame_buffer))
@@ -220,7 +267,7 @@ class GestureProcessor:
             max_confidence = float(np.max(probabilities))
 
             print(f'DEBUG: Motion prediction: {prediction} (confidence: {max_confidence:.2%})')
-            if max_confidence > 0.5:
+            if max_confidence >= self.MIN_CONFIDENCE:
                 self.frame_buffer.clear()
                 return prediction
             return None
@@ -228,45 +275,37 @@ class GestureProcessor:
             print(f'Prediction error: {exc}')
             return None
 
-    def predict_static_gesture(self, gesture_data):
-        """Predict a gesture from a single image."""
-        try:
-            frame_array = self._to_grayscale_array(gesture_data)
+    MIN_CONFIDENCE = 0.8
 
-            if self.static_model is not None and self.static_scaler is not None:
+    def predict_static_gesture(self, gesture_data, with_confidence=False):
+        """Predict a gesture from a single image.
+
+        Returns None when the model is missing or not confident enough (>= MIN_CONFIDENCE);
+        it never guesses. With with_confidence=True returns (label, confidence).
+        """
+        label, confidence = None, 0.0
+        try:
+            if self.static_model is not None and self.static_scaler is not None                     and self.hand_present(self._decode_image(gesture_data)):
+                frame_array = self._to_grayscale_array(gesture_data)
                 features = self.extract_static_features(frame_array)
                 features_scaled = self.static_scaler.transform([features])
                 prediction = self.static_model.predict(features_scaled)[0]
-                probabilities = self.static_model.predict_proba(features_scaled)[0]
-                max_confidence = float(np.max(probabilities))
-
-                print(f'DEBUG: Static prediction: {prediction} (confidence: {max_confidence:.2%})')
-                if max_confidence >= 0.4:
-                    return prediction
-
-            return self._heuristic_static_gesture(frame_array)
+                confidence = float(np.max(self.static_model.predict_proba(features_scaled)[0]))
+                if confidence >= self.MIN_CONFIDENCE:
+                    label = prediction
         except Exception as exc:
             print(f'Error processing static gesture: {exc}')
-            return None
-
-    def _heuristic_static_gesture(self, frame_array):
-        """Fallback static-image classifier for degraded environments."""
-        mean_intensity = float(np.mean(frame_array))
-        spread = float(np.std(frame_array))
-
-        if spread > 0.22:
-            return 'thank_you'
-        if mean_intensity > 0.45:
-            return 'hello'
-        return 'hello'
+        return (label, confidence) if with_confidence else label
 
     def process_gesture(self, gesture_data):
         """Process a single image for translation."""
         return self.predict_static_gesture(gesture_data)
 
     def recognize_letter(self, gesture_data):
-        """Recognize a single letter from a gesture image."""
+        """Recognize a single letter from a gesture image (only when a hand is actually visible)."""
         try:
+            if not self.hand_present(self._decode_image(gesture_data)):
+                return None
             frame_array = self._to_grayscale_array(gesture_data)
 
             if self.static_model is not None and self.static_scaler is not None:

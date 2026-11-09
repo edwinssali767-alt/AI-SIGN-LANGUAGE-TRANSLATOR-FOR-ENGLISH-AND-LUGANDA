@@ -1,251 +1,121 @@
-# Sign Language Translator for English and Luganda
+# Project Title -  AI Sign Language Translator for English and Luganda
 
-A comprehensive web application that translates hand gestures into English and Luganda using computer vision and machine learning. Built with a clean frontend-backend architecture.
+## Problem & Solution
 
-## 📋 Features
+Despite the official recognition of sign language in Uganda and the efforts made by The Uganda National Association of the Deaf (UNAD) to promote sign language education and interpreter training, communication barriers between deaf and hearing individuals remained a significant challenge. 
 
-### Main Translator
-- **Real-time Gesture Recognition**: Capture hand gestures via webcam
-- **Image Upload**: Upload gesture images for translation
-- **Dual Language Support**: Translate to English and Luganda
-- **Instant Feedback**: Get immediate translation results
+Solution
+To address these challenges, Group 41 developed an AI Sign Language Translator for English and Luganda. The system was designed to provide an affordable, accessible and technology-driven solution that facilitates real-time communication between deaf and hearing learners thereby promoting inclusion and improving access to education and essential services. 
 
-### Gesture Library
-- Browse all available sign language gestures
-- Search and filter gestures
-- View detailed gesture information
-- Language-specific filtering
+ Setup Instructions
 
-### Admin Panel
-- Secure login system (credentials: admin/admin123)
-- Add new gestures to the database
-- Edit existing gesture meanings
-- Delete outdated gestures
-- View system statistics
-- Database management
+Follow these steps to install, configure, and run the project locally.
 
-## 🏗️ Architecture
+ 1. Prerequisites
 
-### Frontend (HTML, CSS, JavaScript)
-```
-frontend/
-├── index.html           # Main translator page
-├── gestures.html        # Gesture library
-├── admin.html          # Admin panel
-├── styles.css          # Global styles
-├── translator.js       # Translator logic
-├── gestures.js         # Gesture library logic
-├── admin.js            # Admin functionality
-├── admin.css           # Admin styles
-└── gestures.css        # Gestures page styles
+- Python 3.10 
+- A modern browser such as Chrome, Edge, Firefox, or Safari
+- A webcam for live gesture capture
+- Git, if cloning the project from a repository
+
+ 2. Open the project folder
+
+```powershell
+cd "C:\Users\edwin\Desktop\SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA"
 ```
 
-### Backend (Python Flask)
-```
-backend/
-├── app.py              # Main Flask application
-├── config.py           # Configuration settings
-├── database.py         # Database initialization
-├── gesture_processor.py # Gesture recognition
-├── translator.py       # Translation logic
-└── requirements.txt    # Python dependencies
+ 3. Create or activate the Python virtual environment
+
+On Windows:
+
+```powershell
+python -m venv backend\venv
+backend\venv\Scripts\activate
 ```
 
-## 🎨 Theme Colors
-- **Primary**: Black (#1a1a1a)
-- **Secondary**: Grey (#b3b3b3)
-- **Accent**: White (#ffffff)
-- **Background**: Light Grey (#f5f5f5 and #f9f9f9)
+On macOS or Linux:
 
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.7+
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-
-### Installation & Running
-
-#### Windows
-1. Open Command Prompt
-2. Navigate to the project directory
-3. Run: `start.bat`
-
-#### Linux/Mac
-1. Open Terminal
-2. Navigate to the project directory
-3. Run: `chmod +x start.sh && ./start.sh`
-
-### Manual Setup
-
-#### Backend
 ```bash
-cd backend
-python -m venv venv
-# On Windows: venv\Scripts\activate
-# On Unix/Mac: source venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv backend/venv
+source backend/venv/bin/activate
+```
+
+ 4. Install dependencies
+
+From the project root:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+The main dependencies include Flask, Flask-CORS, Flask-SocketIO, OpenCV, MediaPipe, NumPy, scikit-learn, PyMongo, Cloudinary, and Pillow.
+
+ 5. Configure optional environment variables
+
+The app can run locally with default settings. For production or cloud features, create `backend\.env` and add the values you need:
+
+```env
+SECRET_KEY=change-this-secret
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+MONGODB_URI=
+MONGODB_DB_NAME=sign_language_translator
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+If `MONGODB_URI` is empty, the app uses the local SQLite database configured in `backend/config.py`.
+
+ 6. Run the web app
+
+From the project root:
+
+```powershell
 python app.py
 ```
-Backend will run on: `http://localhost:5000`
 
-#### Frontend
-1. Open `frontend/index.html` in your web browser
-   - Or use any local server: `python -m http.server 8000`
-   - Then visit: `http://localhost:8000/frontend/index.html`
+If `backend\.env` already contains a MongoDB URI but you want to run locally with SQLite, start the app with MongoDB disabled for that terminal session:
 
-## 📱 Usage
-
-### Using the Translator
-1. Click "Start Camera" to begin gesture capture
-2. Show your hand gesture to the camera
-3. Click "Capture Gesture" when ready
-4. Select target language (English or Luganda)
-5. View instant translation
-
-### Viewing Gestures
-1. Navigate to "All Gestures" page
-2. Browse available sign language gestures
-3. Use search to find specific gestures
-4. Filter by language
-5. Click on a gesture to see details
-
-### Admin Functions
-1. Go to the Admin panel
-2. Login with credentials:
-   - Username: `admin`
-   - Password: `admin123`
-3. Add new gestures with English and Luganda meanings
-4. Edit or delete existing gestures
-5. View system statistics
-
-## 📊 Database
-
-The system uses SQLite with the following tables:
-
-- **gestures**: Stores gesture definitions
-- **translations**: Logs translation history
-- **admin_users**: Admin account management
-
-Database file: `sign_translator.db` (auto-created on first run)
-
-## 🔌 API Endpoints
-
-### Public Endpoints
-- `GET /api/health` - Health check
-- `POST /api/translate` - Translate gesture
-- `GET /api/gestures` - Get all gestures
-- `GET /api/gestures/<id>` - Get gesture details
-
-### Admin Endpoints
-- `POST /api/admin/login` - Admin login
-- `POST /api/admin/gestures` - Add gesture
-- `PUT /api/admin/gestures/<id>` - Update gesture
-- `DELETE /api/admin/gestures/<id>` - Delete gesture
-- `GET /api/admin/stats` - Get statistics
-
-## 🔄 Project Structure
-
-```
-SIGN LANGUAGE TRANSLATOR FOR ENGLISH AND LUGANDA/
-├── backend/                 # Python Flask API
-│   ├── app.py
-│   ├── config.py
-│   ├── database.py
-│   ├── gesture_processor.py
-│   ├── translator.py
-│   ├── requirements.txt
-│   └── sign_translator.db  (created at runtime)
-├── frontend/               # Web interface
-│   ├── index.html
-│   ├── admin.html
-│   ├── gestures.html
-│   ├── styles.css
-│   ├── admin.css
-│   ├── gestures.css
-│   ├── translator.js
-│   ├── admin.js
-│   └── gestures.js
-├── start.bat              # Windows startup script
-├── start.sh               # Unix startup script
-└── README.md              # This file
+```powershell
+$env:MONGODB_URI = ""
+$env:SEND_LOGIN_WELCOME_EMAIL = "false"
+python app.py
 ```
 
-## 🛠️ Configuration
+Or on Windows, use the startup script:
 
-Edit `backend/config.py` to customize:
-- Flask debug mode
-- Database location
-- Upload folder
-- Gesture model path
-- Confidence thresholds
+```powershell
+start.bat
+```
 
-## 📝 Initial Gestures
+The Flask server serves both the backend API and frontend pages.
 
-The system comes with 6 pre-loaded gestures:
-1. **Hello** (Wabale)
-2. **Thank you** (Asante)
-3. **Yes** (Yee)
-4. **No** (Nedda)
-5. **Good** (Nyo)
-6. **Bad** (Bibi)
+ 7. Open the app in your browser
 
-Use the admin panel to add more!
+- Main app: `http://localhost:5000/welcome.html`
+- Translator: `http://localhost:5000/translator.html`
+- Gesture library: `http://localhost:5000/gestures.html`
+- Letter learning: `http://localhost:5000/letters.html`
+- Admin panel: `http://localhost:5000/admin.html`
 
-## 🚀 Future Enhancements
+Default admin credentials:
 
-- [ ] Integrate MediaPipe for advanced gesture recognition
-- [ ] Train custom ML model for better accuracy
-- [ ] Add more languages
-- [ ] Video tutorial support
-- [ ] User authentication
-- [ ] Gesture learning mode
-- [ ] Export/Import gesture databases
-- [ ] Mobile app support
-- [ ] Real-time multi-gesture recognition
-- [ ] Sound/audio output for translations
+```text
+Username: admin
+Password: admin123
+```
 
-## 🐛 Troubleshooting
+ 8. Useful checks
 
-### Backend won't start
-- Ensure Python 3.7+ is installed
-- Check if port 5000 is available
-- Run: `pip install -r requirements.txt`
+Health check:
 
-### Camera not working
-- Check browser camera permissions
-- Ensure camera is connected and not in use
-- Try a different browser
+```powershell
+Invoke-WebRequest -Uri "http://localhost:5000/api/health" -UseBasicParsing
+```
 
-### Admin login fails
-- Ensure backend is running
-- Try resetting credentials: edit `database.py` and re-initialize
-- Clear browser localStorage: Press F12 → Application → Clear
+Compile check:
 
-### Database errors
-- Delete `sign_translator.db` to reset
-- Backend will recreate it on next run
-
-## 📄 License
-
-This project is open source and available for educational and personal use.
-
-## ✨ Notes
-
-- Always run the backend before accessing the frontend
-- Use modern browsers for best compatibility
-- Camera access requires HTTPS in production
-- Database is stored locally (not in cloud)
-
-## 🤝 Support
-
-For issues or questions:
-1. Check the README thoroughly
-2. Verify all files are in correct directories
-3. Ensure backend is running on port 5000
-4. Check browser console for errors (F12)
-
----
-
-**Version**: 1.0
-**Last Updated**: 2026
-**Theme**: Black, White, Grey (Minimalist Professional)
+```powershell
+python -m py_compile app.py backend\server.py backend\config.py backend\database.py backend\gesture_processor.py backend\translator.py
+```
