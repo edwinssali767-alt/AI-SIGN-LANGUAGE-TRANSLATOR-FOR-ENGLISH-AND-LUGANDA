@@ -1,14 +1,16 @@
-datasets
-uploads
-training
-tests
-docs
-scripts
-models
-backend/gesture_dataset
-backend/venv
-.codex
-.gemini
-.agent
-.agents
+# Anchored with a leading slash so they only match the repo root
+# (an unanchored "models" would also drop frontend/models/hand_landmarker.task).
+/datasets
+/uploads
+/training
+/tests
+/docs
+/scripts
+/models
+/backend/gesture_dataset
+/backend/venv
+/.codex
+/.gemini
+/.agent
+/.agents
 *.docx
