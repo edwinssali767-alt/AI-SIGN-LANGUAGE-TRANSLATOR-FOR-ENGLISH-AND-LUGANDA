@@ -1,0 +1,14 @@
+datasets
+uploads
+training
+tests
+docs
+scripts
+models
+backend/gesture_dataset
+backend/venv
+.codex
+.gemini
+.agent
+.agents
+*.docx

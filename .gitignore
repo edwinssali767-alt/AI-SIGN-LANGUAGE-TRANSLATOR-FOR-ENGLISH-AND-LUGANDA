@@ -16,3 +16,10 @@ training/reports/
 .gemini/
 .agent/
 .agents/
+
+# Raw gesture training samples (large, regenerable) and runtime folders
+backend/gesture_dataset/
+/datasets/
+/uploads/
+/models/
+.vercel

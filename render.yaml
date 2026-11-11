@@ -3,5 +3,5 @@ services:
     name: sign-language-translator
     env: python
     pythonVersion: "3.10.13"
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT wsgi:app
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn --chdir backend -w 1 -b 0.0.0.0:$PORT wsgi:app

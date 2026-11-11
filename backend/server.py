@@ -90,7 +90,10 @@ PROJECT_DIRS = [
     str(PROJECT_ROOT_DIR / 'docs'),
 ]
 for directory in PROJECT_DIRS:
-    os.makedirs(directory, exist_ok=True)
+    try:
+        os.makedirs(directory, exist_ok=True)
+    except OSError:
+        pass  # read-only filesystem (e.g. Vercel): only needed for local training/uploads
 
 # Initialize database. If it is unreachable (e.g. no internet), still start: the offline features
 # (recognition, sentences, text to sign) do not use it. Login, history and admin lists need it.

@@ -27,7 +27,6 @@ const urlsToCache = [
   '/data/vocabulary.json',
   '/data/patterns.json',
   '/theme.js',
-  '/hero-fallback.svg',
   '/auth.js',
   '/translator.js',
   '/admin.js',

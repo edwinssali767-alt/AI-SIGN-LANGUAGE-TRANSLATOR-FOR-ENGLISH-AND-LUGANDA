@@ -15,6 +15,24 @@ The original project description and deployment guide are in [readme(final).md](
 | Admin | Records training data (hand-landmark numbers only) with signer ID, device type and a consent box. |
 | Privacy | What is and is not stored. |
 
+## Project layout
+
+| Folder | What is in it |
+|---|---|
+| `frontend/` | The website (static HTML/CSS/JS, fonts, MediaPipe, vocabulary and patterns). Served by Vercel's CDN in production. |
+| `backend/` | Flask API: accounts, history, admin, landmark recording. `run.py` starts it locally, `wsgi.py` is for gunicorn. |
+| `api/` | Vercel serverless entrypoint (`api/index.py`) that exposes the backend at `/api/*`. |
+| `training/` | `train_landmarks.py`: trains the in-browser sign model from recorded landmarks. |
+| `tests/` | Node unit tests, Python tests, and real-browser end-to-end tests. |
+| `scripts/` | Windows/Linux launchers (`start.bat`, `start.sh`, `TRAIN_GESTURES.bat`). |
+| `docs/` | Older guides and notes, plus `AUDIT.md`. |
+
+## Deploy on Vercel
+
+`vercel.json` serves `frontend/` as the static site and runs the backend as one serverless function. The root `requirements.txt` is the **slim** set for that function (no mediapipe/opencv/scikit-learn: recognition runs in the browser). `backend/requirements.txt` is the full set for local use and Render.
+
+Set these in Vercel, Project Settings, Environment Variables: `MONGODB_URI`, `MONGODB_DB_NAME`, the `MONGODB_*_COLLECTION` names, `SECRET_KEY`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`. In MongoDB Atlas, Network Access must allow Vercel's changing IPs (`0.0.0.0/0`).
+
 ## Setup
 
 ```powershell
@@ -22,7 +40,7 @@ cd backend
 python -m venv venv                 # Python 3.10 (the venv in this repo uses 3.10)
 .\venv\Scripts\activate
 pip install -r requirements.txt
-python server.py                    # http://localhost:5000
+python run.py                       # http://localhost:5000
 ```
 
 Settings go in `backend/.env` (see `.env.example`). Important ones:
