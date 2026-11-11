@@ -4,7 +4,7 @@
   "description": "Test scripts only. The app itself has no Node dependencies.",
   "scripts": {
     "test": "node --test \"tests/*.test.js\"",
-    "test:py": "backend\venv\Scripts\python.exe -m unittest discover -s tests -p \"test_*.py\"",
+    "test:py": "backend/venv/Scripts/python.exe -m unittest discover -s tests -p \"test_*.py\"",
     "e2e": "node tests/e2e/ui.e2e.js && node tests/e2e/contrast.e2e.js"
   }
 }
