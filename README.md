@@ -75,22 +75,16 @@ A sentence is finished after **1.5 s with no hand**, or when **Done** is pressed
 
 ## Train the sign model
 
-The model is trained from recordings made on the Admin page.
+Everything is done on the **Admin** page. No code, no terminal, and it works on the live Vercel site.
 
-1. Open **Admin → Record Sign Data**. For each sign: type the sign name (use the glosses in `frontend/data/vocabulary.json`, e.g. `WATER`), a signer code such as `s01` (not a real name), the device, tick **consent**, press **Record**. Each press saves 30 frames of numbers.
-2. Use **several different signers** (at least 3), different lighting, and both phone and laptop. Training splits **by signer**, so a model is judged on people it has never seen.
-3. Train:
+1. **Admin, Record Sign Data.** For each sign: type the sign name (use the glosses in `frontend/data/vocabulary.json`, e.g. `WATER`), a signer code such as `s01` (not a real name), the device, tick **consent**, press **Record**. Each press saves 30 frames of hand-landmark numbers (never video or photos) to the database.
+2. Use **several different signers** (at least 3), different lighting, and both phone and laptop. A model is judged on signers it never saw, so more people means a more honest and more reliable result.
+3. **Admin, Train the Sign Model, Train model.** Your browser downloads the recordings, trains the model (about 1 to 3 minutes) and shows the accuracy on held-back data, a per-sign table, and warnings (too few signers, too few recordings, signs that get confused).
+4. Press **Publish to translator**. It is stored in MongoDB and the translator loads it automatically (within about a minute, or on reload). If accuracy is below 70% the button stays locked unless you tick **Publish anyway**.
 
-   ```powershell
-   backend\venv\Scripts\python.exe training\train_landmarks.py
-   ```
+Developers can still train offline with `python training/train_landmarks.py` (writes `frontend/models/gesture-mlp.json`, the file-based fallback the translator uses when no published model exists). To remove bad data: `DELETE /api/admin/landmarks?label=WATER[&signer_id=s01]` with the admin token.
 
-   It prints a confusion matrix and per-class accuracy, and **how many held-out frames reach the 80% display threshold**. It writes `frontend/models/gesture-mlp.json` and `training/reports/report.txt`.
-4. Reload the Translator page and press **Start recognition**.
-
-Options: `--aug 4` (augmented copies per sample), `--aug-strength 0..1` (lower it if signs look alike and confidence is low). Add `--demo` to test the pipeline on synthetic data; it never writes into the app.
-
-Recorded data is stored in `datasets/landmarks/` and is excluded from git (see `.gitignore`).
+Recordings are stored in MongoDB (collection `landmark_samples`) and, when running without a database, in `datasets/landmarks/` (excluded from git).
 
 ## Add a new sign
 

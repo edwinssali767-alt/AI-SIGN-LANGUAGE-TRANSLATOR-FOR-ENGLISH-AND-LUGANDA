@@ -1,8 +1,10 @@
 // Full chain, in a real browser with a FAKE CAMERA (a looping video made from sample hand photos):
 //   admin page records landmark sequences -> server saves them (consent required) ->
-//   training script splits by signer and exports JSON -> translator loads the model ->
+//   the admin page trains in the browser (signer split, honest report) and publishes the model -> translator loads it ->
 //   live recognition -> smoothing -> sign buffer -> sentence.
-// It also checks the quality hints (dark / no hand) and that the browser's model maths equals Python's.
+// It also checks the quality hints (dark / no hand).
+// Run the server with an EMPTY MONGODB_URI so this test never touches the real database:
+//   set MONGODB_URI=  (then start backend/run.py, then run this with the same variable set).
 // The test data it creates is deleted at the end. Needs ffmpeg and the project venv.
 // Run:  node tests/e2e/recognition.e2e.js <dir-with-fine.mjpeg-how.mjpeg-black.mjpeg-nohand.mjpeg>
 const { launch, sleep } = require('./cdp');
@@ -98,35 +100,49 @@ async function record(label, feedName, signers, token, port) {
             assert(rec.frames.every(f => f.every(v => typeof v === 'number')), 'non-numeric data');
         });
 
-        await step('training script: splits by signer, reports confusion matrix, exports model JSON', async () => {
-            const r = spawnSync(PY, ['training/train_landmarks.py', '--aug', '2'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, PYTHONIOENCODING: 'utf-8' } });
-            const out = (r.stdout || '') + (r.stderr || '');
-            console.log(out.split(String.fromCharCode(10)).filter(l => /signers|accuracy|HOW|FINE|how|fine|\[\[|\]\]/.test(l) && !/arn/.test(l)).map(l => '      | ' + l).join(String.fromCharCode(10)));
-            assert(r.status === 0, 'exit ' + r.status + ' ' + out.slice(-400));
-            assert(/Train signers:.*Test signers:/.test(out), 'no signer split in output');
-            assert(/Confusion matrix/.test(out) && /Per-class accuracy/.test(out), 'no report');
-            assert(fs.existsSync(MODEL), 'model not exported');
+        await step('admin page: "Train model" downloads the recordings, trains in the browser and reports honestly', async () => {
+            const b = await launch({ port: 9360 });
+            try {
+                await b.goto(`${BASE}/admin.html`);
+                await b.eval(`localStorage.setItem('admin_token', ${JSON.stringify(token)})`);
+                await b.goto(`${BASE}/admin.html`);
+                await b.eval('document.getElementById("loginView").classList.add("hidden"); const d = document.getElementById("dashboardView"); d.classList.remove("hidden"); d.classList.add("active"); d.style.display = "block";');
+                assert(await b.eval('document.getElementById("lmPublishBtn").disabled'), 'publish must start disabled');
+                await b.click('#lmTrainBtn');
+                await b.waitFor('/Training finished|Training stopped/.test(document.getElementById("lmTrainStatus").textContent)', 240000, 'training to finish');
+                const status = await b.eval('document.getElementById("lmTrainStatus").textContent');
+                assert(/Training finished/.test(status), 'status: ' + status);
+                const report = await b.eval('document.getElementById("lmTrainReport").textContent');
+                console.log('      | ' + report.slice(0, 260).replace(/\s+/g, ' '));
+                assert(/6 recordings from 3 signers, 2 signs/.test(report), 'report summary: ' + report.slice(0, 200));
+                assert(/Tested on signers it never saw/.test(report), 'with 3 signers the test must be on unseen signers');
+                assert(/FINE/.test(report) && /HOW/.test(report), 'per-sign table');
+                const acc = /held back for testing: (\d+)%/.exec(report);
+                assert(acc && Number(acc[1]) >= 80, 'held-out accuracy ' + (acc && acc[1]));
+                assert(!(await b.eval('document.getElementById("lmPublishBtn").disabled')), 'publish should be enabled after a good run');
+                assert(b.consoleErrors.length === 0, 'console errors: ' + b.consoleErrors.join(' | '));
+                await b.click('#lmPublishBtn');
+                await b.waitFor('/Published\\./.test(document.getElementById("lmTrainStatus").textContent)', 15000, 'publish');
+            } finally { await b.close(); }
         });
 
-        await step('browser model maths == Python maths on the exported weights', async () => {
+        await step('published model is served to everyone and is a valid browser MLP', async () => {
+            const r = await fetch(`${BASE}/api/landmark-model`);
+            assert(r.status === 200, 'status ' + r.status);
+            const model = await r.json();
+            assert(JSON.stringify(model.labels) === JSON.stringify(['FINE', 'HOW']), 'labels ' + model.labels);
+            assert(model.layers[0].w.length === 63 && model.layers.at(-1).act === 'softmax', 'shape');
             const SL = require(path.join(ROOT, 'frontend', 'sl-core.js'));
-            const model = JSON.parse(fs.readFileSync(MODEL, 'utf8'));
             const rec = JSON.parse(fs.readFileSync(path.join(LM_DIR, 'how', fs.readdirSync(path.join(LM_DIR, 'how'))[0]), 'utf8'));
             const pts = [];
             for (let i = 0; i < 21; i++) pts.push({ x: rec.frames[5][i * 3], y: rec.frames[5][i * 3 + 1], z: rec.frames[5][i * 3 + 2] });
-            const input = Array.from(SL.normalizeLandmarks(pts));
-            const js = SL.mlpPredict(model, input);
-            const py = spawnSync(PY, ['-c', `
-import json,sys,numpy as np
-m=json.load(open(sys.argv[1])); x=np.array(json.loads(sys.argv[2]),dtype=np.float64)
-for L in m['layers']:
-    x=x@np.array(L['w'])+np.array(L['b'])
-    if L['act']=='relu': x=np.maximum(0,x)
-e=np.exp(x-x.max()); p=e/e.sum(); print('P='+json.dumps(p.tolist()))`, MODEL, JSON.stringify(input)], { encoding: 'utf8' });
-            const pyP = JSON.parse(/P=(.*)/.exec(py.stdout)[1]);
-            const maxDiff = Math.max(...pyP.map((v, i) => Math.abs(v - js.probs[i])));
-            assert(maxDiff < 1e-4, 'max diff ' + maxDiff);
-            assert(js.label === 'how', 'predicted ' + js.label);
+            const got = SL.mlpPredict(model, SL.normalizeLandmarks(pts));
+            assert(got.label === 'HOW', 'predicted ' + got.label);
+        });
+
+        await step('publishing is admin-only', async () => {
+            const r = await fetch(`${BASE}/api/admin/landmark-model`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            assert(r.status === 401, 'status ' + r.status);
         });
 
         console.log('Live recognition in the translator page');

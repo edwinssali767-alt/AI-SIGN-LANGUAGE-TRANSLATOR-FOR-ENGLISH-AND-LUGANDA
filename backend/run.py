@@ -11,8 +11,11 @@ from server import app as application, socketio
 app = application
 
 if __name__ == "__main__":
-    debug = bool(application.config.get("DEBUG", False))
+    # Safe defaults: localhost only, no debugger. For phone testing on your Wi-Fi set HOST=0.0.0.0;
+    # for auto-reload while developing set FLASK_DEBUG=1.
+    host = os.getenv("HOST", "127.0.0.1")
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
     if socketio:
-        socketio.run(application, host="0.0.0.0", port=5000, debug=debug, use_reloader=False)
+        socketio.run(application, host=host, port=5000, debug=debug, use_reloader=False, allow_unsafe_werkzeug=True)
     else:
-        application.run(host="0.0.0.0", port=5000, debug=debug, use_reloader=False)
+        application.run(host=host, port=5000, debug=debug, use_reloader=False)

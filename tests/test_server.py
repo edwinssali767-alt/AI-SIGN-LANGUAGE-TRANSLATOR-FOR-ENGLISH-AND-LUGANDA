@@ -68,8 +68,11 @@ class LandmarkEndpointTests(unittest.TestCase):
         self.auth = {"Authorization": server.sign_token("admin", "unittest")}
         self.frames = [[0.5] * 63 for _ in range(12)]
         self.body = {"label": LABEL, "signer_id": "s9", "device": "phone", "consent": True, "frames": self.frames}
+        self._remote = server._remote_store
+        server._remote_store = lambda: False  # tests must never write to the real MongoDB
 
     def tearDown(self):
+        server._remote_store = self._remote
         shutil.rmtree(server.LANDMARK_DIR / LABEL, ignore_errors=True)
 
     def post(self, **over):

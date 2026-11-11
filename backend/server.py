@@ -2108,7 +2108,56 @@ def admin_train_model():
 
 
 LANDMARK_DIR = PROJECT_ROOT_DIR / 'datasets' / 'landmarks'
+LANDMARK_MODEL_FILE = FRONTEND_FOLDER / 'models' / 'gesture-mlp.json'
 LANDMARK_DEVICES = {'phone', 'laptop', 'tablet', 'other'}
+LANDMARK_MODEL_ID = 'landmark_mlp'
+LANDMARK_EXPORT_MAX = 120
+
+
+def _remote_store():
+    """True when samples and the trained model live in MongoDB (always on Vercel: no writable disk)."""
+    from mongodb_client import use_mongodb
+    return use_mongodb()
+
+
+def _landmark_samples():
+    from mongodb_client import get_mongo_db
+    return get_mongo_db()['landmark_samples']
+
+
+def _landmark_models():
+    from mongodb_client import get_mongo_db
+    return get_mongo_db()['landmark_models']
+
+
+def _validate_model(model):
+    """Check an uploaded browser model is a well-formed MLP over 63 inputs. Returns an error string or None."""
+    if not isinstance(model, dict):
+        return 'Model must be an object.'
+    labels, layers = model.get('labels'), model.get('layers')
+    if not isinstance(labels, list) or not 2 <= len(labels) <= 300 or not all(isinstance(l, str) and l for l in labels):
+        return 'Model needs between 2 and 300 text labels.'
+    if not isinstance(layers, list) or not 2 <= len(layers) <= 4:
+        return 'Model needs 2 to 4 layers.'
+    width = 63
+    for i, layer in enumerate(layers):
+        if not isinstance(layer, dict):
+            return f'Layer {i + 1} has the wrong shape.'
+        w, b = layer.get('w'), layer.get('b')
+        if not isinstance(w, list) or not isinstance(b, list) or len(w) != width or not b:
+            return f'Layer {i + 1} has the wrong shape.'
+        if any(not isinstance(row, list) or len(row) != len(b) for row in w):
+            return f'Layer {i + 1} weights are not rectangular.'
+        last = i == len(layers) - 1
+        if layer.get('act') != ('softmax' if last else 'relu'):
+            return f'Layer {i + 1} has the wrong activation.'
+        for row in w:
+            if any(not isinstance(v, (int, float)) or v != v or abs(v) > 1e3 for v in row):
+                return f'Layer {i + 1} has invalid numbers.'
+        width = len(b)
+    if width != len(labels):
+        return 'The last layer must have one output per label.'
+    return None
 
 
 @app.route('/api/admin/landmarks', methods=['POST'])
@@ -2145,32 +2194,153 @@ def admin_save_landmark_sequence():
             return jsonify({'error': 'Landmark values out of range.'}), 400
         clean.append(values)
 
-    folder = LANDMARK_DIR / label
-    folder.mkdir(parents=True, exist_ok=True)
-    filename = f"{signer}_{uuid.uuid4().hex[:10]}.json"
-    (folder / filename).write_text(json.dumps({
+    record = {
         'signer_id': signer,
         'device': device,
         'label': label,
         'consent': True,
         'captured_at': get_nairobi_time(),
         'frames': clean,
-    }, separators=(',', ':')), encoding='utf-8')
+    }
+    if _remote_store():
+        inserted = _landmark_samples().insert_one(record)
+        return jsonify({'success': True, 'id': str(inserted.inserted_id), 'frames': len(clean)}), 201
+
+    folder = LANDMARK_DIR / label
+    folder.mkdir(parents=True, exist_ok=True)
+    filename = f"{signer}_{uuid.uuid4().hex[:10]}.json"
+    (folder / filename).write_text(json.dumps(record, separators=(',', ':')), encoding='utf-8')
     return jsonify({'success': True, 'file': filename, 'frames': len(clean)}), 201
+
+
+def _disk_samples():
+    """Local fallback store: every recording under datasets/landmarks as a dict."""
+    out = []
+    if LANDMARK_DIR.exists():
+        for path in sorted(LANDMARK_DIR.glob('*/*.json')):
+            try:
+                out.append(json.loads(path.read_text(encoding='utf-8')))
+            except (OSError, ValueError):
+                continue
+    return out
 
 
 @app.route('/api/admin/landmarks/summary', methods=['GET'])
 def admin_landmark_summary():
-    """Recording counts per sign and the list of signers."""
+    """Recording counts per sign, the list of signers, and the published model (if any)."""
     if not is_valid_admin_token(request.headers.get('Authorization')):
         return jsonify({'error': 'Unauthorized'}), 401
     signs, signers = {}, set()
-    if LANDMARK_DIR.exists():
-        for folder in sorted(p for p in LANDMARK_DIR.iterdir() if p.is_dir()):
-            files = list(folder.glob('*.json'))
-            signs[folder.name] = len(files)
-            signers.update(f.name.rsplit('_', 1)[0] for f in files)
-    return jsonify({'signs': signs, 'signers': sorted(signers)}), 200
+    model_info = None
+    if _remote_store():
+        col = _landmark_samples()
+        for row in col.aggregate([{'$group': {'_id': '$label', 'n': {'$sum': 1}}}]):
+            signs[row['_id']] = row['n']
+        signers.update(col.distinct('signer_id'))
+        doc = _landmark_models().find_one({'_id': LANDMARK_MODEL_ID}, {'model': 0})
+        if doc:
+            model_info = {'trained_at': doc.get('trained_at'), 'labels': doc.get('labels'), 'metrics': doc.get('metrics')}
+    else:
+        for rec in _disk_samples():
+            signs[rec['label']] = signs.get(rec['label'], 0) + 1
+            signers.add(rec['signer_id'])
+        if LANDMARK_MODEL_FILE.exists():
+            model_info = {'trained_at': None, 'labels': json.loads(LANDMARK_MODEL_FILE.read_text(encoding='utf-8')).get('labels')}
+    return jsonify({'signs': dict(sorted(signs.items())), 'signers': sorted(signers), 'model': model_info}), 200
+
+
+@app.route('/api/admin/landmarks/export', methods=['GET'])
+def admin_export_landmarks():
+    """One page of recordings for in-browser training: ?skip=0&limit=80."""
+    if not is_valid_admin_token(request.headers.get('Authorization')):
+        return jsonify({'error': 'Unauthorized'}), 401
+    try:
+        skip = max(0, int(request.args.get('skip', 0)))
+        limit = min(LANDMARK_EXPORT_MAX, max(1, int(request.args.get('limit', 80))))
+    except ValueError:
+        return jsonify({'error': 'skip and limit must be numbers.'}), 400
+    if _remote_store():
+        col = _landmark_samples()
+        total = col.count_documents({'consent': True})
+        rows = col.find({'consent': True}, {'label': 1, 'signer_id': 1, 'device': 1, 'frames': 1}).sort('_id', 1).skip(skip).limit(limit)
+        samples = [{'label': r['label'], 'signer_id': r['signer_id'], 'device': r.get('device'), 'frames': r['frames']} for r in rows]
+    else:
+        everything = [r for r in _disk_samples() if r.get('consent')]
+        total = len(everything)
+        samples = [{k: r[k] for k in ('label', 'signer_id', 'device', 'frames') if k in r} for r in everything[skip:skip + limit]]
+    return jsonify({'total': total, 'skip': skip, 'samples': samples}), 200
+
+
+@app.route('/api/admin/landmarks', methods=['DELETE'])
+def admin_delete_landmarks():
+    """Remove recordings of one sign (?label=WATER), optionally only one signer (&signer_id=s01)."""
+    if not is_valid_admin_token(request.headers.get('Authorization')):
+        return jsonify({'error': 'Unauthorized'}), 401
+    label = sanitize_label(request.args.get('label'))
+    signer = sanitize_label(request.args.get('signer_id')) if request.args.get('signer_id') else None
+    if not label:
+        return jsonify({'error': 'label is required.'}), 400
+    if _remote_store():
+        query = {'label': label}
+        if signer:
+            query['signer_id'] = signer
+        deleted = _landmark_samples().delete_many(query).deleted_count
+    else:
+        deleted = 0
+        folder = LANDMARK_DIR / label
+        if folder.exists():
+            for path in folder.glob('*.json'):
+                if not signer or path.name.startswith(signer + '_'):
+                    path.unlink()
+                    deleted += 1
+    return jsonify({'success': True, 'deleted': deleted}), 200
+
+
+@app.route('/api/admin/landmark-model', methods=['PUT'])
+def admin_publish_landmark_model():
+    """Publish a model trained in the admin page. The translator loads it from /api/landmark-model."""
+    if not is_valid_admin_token(request.headers.get('Authorization')):
+        return jsonify({'error': 'Unauthorized'}), 401
+    data = request.get_json(silent=True) or {}
+    model = data.get('model')
+    problem = _validate_model(model)
+    if problem:
+        return jsonify({'error': problem}), 400
+    payload = {
+        'version': 1,
+        'input': 63,
+        'labels': [str(l) for l in model['labels']],
+        'layers': model['layers'],
+    }
+    metrics = data.get('metrics') if isinstance(data.get('metrics'), dict) else {}
+    metrics = {k: v for k, v in metrics.items() if isinstance(v, (int, float, str, bool)) or v is None}
+    if _remote_store():
+        _landmark_models().replace_one(
+            {'_id': LANDMARK_MODEL_ID},
+            {'_id': LANDMARK_MODEL_ID, 'model': payload, 'labels': payload['labels'],
+             'metrics': metrics, 'trained_at': get_nairobi_time()},
+            upsert=True,
+        )
+    else:
+        LANDMARK_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+        LANDMARK_MODEL_FILE.write_text(json.dumps(payload, separators=(',', ':')), encoding='utf-8')
+    return jsonify({'success': True, 'labels': payload['labels']}), 200
+
+
+@app.route('/api/landmark-model', methods=['GET'])
+def get_landmark_model():
+    """The published sign model (public: it contains only network weights, no recordings)."""
+    payload = None
+    if _remote_store():
+        doc = _landmark_models().find_one({'_id': LANDMARK_MODEL_ID})
+        payload = doc.get('model') if doc else None
+    elif LANDMARK_MODEL_FILE.exists():
+        payload = json.loads(LANDMARK_MODEL_FILE.read_text(encoding='utf-8'))
+    if not payload:
+        return jsonify({'error': 'No sign model has been published yet.'}), 404
+    response = jsonify(payload)
+    response.headers['Cache-Control'] = 'public, max-age=30, stale-while-revalidate=300'
+    return response
 
 
 @app.teardown_appcontext

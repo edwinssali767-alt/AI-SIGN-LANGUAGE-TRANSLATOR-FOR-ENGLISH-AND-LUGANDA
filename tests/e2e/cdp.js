@@ -24,6 +24,8 @@ async function launch({ port = 9333, width = 1280, height = 900, fakeVideo = nul
         '--autoplay-policy=no-user-gesture-required', '--mute-audio', 'about:blank',
     ];
     if (fakeVideo) args.splice(args.length - 1, 0, `--use-file-for-fake-video-capture=${fakeVideo}`);
+    // E2E_BROWSER_ARGS: extra flags, e.g. --host-resolver-rules="MAP 127.0.0.1 127.0.0.1:5055" to test against a server on another port.
+    if (process.env.E2E_BROWSER_ARGS) args.push(...(process.env.E2E_BROWSER_ARGS.match(/(?:[^\s"]+|"[^"]*")+/g) || []).map(a => a.replace(/"/g, '')));
     const proc = spawn(exe, args, { stdio: 'ignore' });
 
     let targets = null;

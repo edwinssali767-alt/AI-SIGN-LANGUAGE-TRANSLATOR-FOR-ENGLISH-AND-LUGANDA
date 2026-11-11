@@ -6,6 +6,29 @@
     const HAND_MODEL = '/models/hand_landmarker.task';
     const GESTURE_MODEL = '/models/gesture-mlp.json';
 
+    // The model published from the admin page lives in the database (/api/landmark-model); a copy is kept
+    // on this device so recognition still works offline. /models/gesture-mlp.json is the file-based fallback
+    // used when training is run with training/train_landmarks.py.
+    const MODEL_CACHE_KEY = 'sl_sign_model_v1';
+    async function fetchModel(url) {
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data && Array.isArray(data.layers) && Array.isArray(data.labels) ? data : null;
+    }
+    async function loadSignModel() {
+        for (const url of ['/api/landmark-model', GESTURE_MODEL]) {
+            try {
+                const model = await fetchModel(url);
+                if (model) {
+                    try { localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(model)); } catch (e) { /* storage full or blocked */ }
+                    return model;
+                }
+            } catch (e) { /* offline or blocked: try the next source */ }
+        }
+        try { return JSON.parse(localStorage.getItem(MODEL_CACHE_KEY) || 'null'); } catch (e) { return null; }
+    }
+
     class SLRecognizer {
         // opts: video, fps (default 15; use ~8 on low-end phones), overlay (canvas, optional),
         //       onFrame({hasHand, quality, prediction}), onStatus(text, kind)
@@ -48,12 +71,7 @@
                     baseOptions: { ...base, delegate: 'CPU' }, runningMode: 'VIDEO', numHands: 1,
                 });
             }
-            try {
-                const res = await fetch(GESTURE_MODEL, { cache: 'no-cache' });
-                this.model = res.ok ? await res.json() : null;
-            } catch (e) {
-                this.model = null;
-            }
+            this.model = await loadSignModel();
             // The first detection compiles WebAssembly and takes seconds: do it now, behind the loading message,
             // instead of freezing on the first sign.
             this.onStatus('Warming up...', 'loading');

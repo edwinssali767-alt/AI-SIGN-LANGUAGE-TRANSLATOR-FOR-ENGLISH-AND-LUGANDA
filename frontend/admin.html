@@ -241,65 +241,25 @@
 
             </section>
 
-            <!-- Model Training Section -->
+            <!-- Train the sign model: runs in this browser, saves to the database -->
             <section class="card" id="modelTraining">
+                <h3>Train the Sign Model</h3>
+                <p>Teaches the translator the signs you recorded in <strong>Record Sign Data</strong> (below). Training runs on this device, so it works on the live site. Takes about 1 to 3 minutes.</p>
+                <p id="lmModelInfo" role="status"></p>
 
-                <h3>Model Training</h3>
-
-                <p>Capture gesture images to train the ML model.</p>
-
-                <div class="grid grid-2">
-
-                    <div class="form-group">
-
-                        <label for="trainingGestureName">Gesture Name</label>
-
-                        <input type="text" id="trainingGestureName" placeholder="e.g., hello" required>
-
-                    </div>
-
-                    <div class="form-group">
-
-                        <label for="trainingGestureLabel">Label (auto-generated)</label>
-
-                        <input type="text" id="trainingGestureLabel" placeholder="Auto from name" readonly>
-
-                    </div>
-
+                <div class="training-controls">
+                    <button type="button" id="lmTrainBtn" class="btn btn-success">Train model</button>
+                    <button type="button" id="lmPublishBtn" class="btn btn-primary" disabled>Publish to translator</button>
                 </div>
-
-                <div class="camera-section">
-
-                    <video id="trainingCameraFeed" class="camera-feed" autoplay playsinline style="max-width: 100%; border-radius: 8px;"></video>
-
-                    <canvas id="trainingCanvas" style="display:none;"></canvas>
-
+                <div class="form-group" id="lmPublishAnywayRow" hidden>
+                    <label>
+                        <input type="checkbox" id="lmPublishAnyway">
+                        Publish anyway, even though accuracy is low or unmeasured.
+                    </label>
                 </div>
-
-                <div class="controls mt-2">
-
-                    <button type="button" id="startTrainingCameraBtn" class="btn btn-primary">Start Camera</button>
-
-                    <button type="button" id="captureTrainingFrameBtn" class="btn btn-secondary" disabled>Capture Frame</button>
-
-                    <button type="button" id="stopTrainingCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
-
-                    <button type="button" id="trainModelBtn" class="btn btn-success" disabled>Train Model</button>
-
-                </div>
-
-                <div class="mt-2">
-
-                    <p>Captured frames: <span id="capturedFramesCount">0</span></p>
-
-                    <div id="trainingPreview" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
-
-                </div>
-
-                <div id="trainingError" class="alert alert-danger hidden"></div>
-
-                <div id="trainingSuccess" class="alert alert-success hidden"></div>
-
+                <progress id="lmTrainProgress" value="0" max="100" style="width:100%; max-width:420px;" hidden></progress>
+                <p id="lmTrainStatus" role="status" aria-live="polite">Not trained yet.</p>
+                <div id="lmTrainReport"></div>
             </section>
 
             <!-- Landmark capture: numbers only, no video or images are saved -->
@@ -485,6 +445,8 @@
     <script src="sl-core.js"></script>
     <script src="recognizer.js"></script>
     <script src="admin-landmarks.js"></script>
+    <script src="landmark-trainer.js"></script>
+    <script src="admin-train.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
